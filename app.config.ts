@@ -28,11 +28,11 @@ const schemeFromBundleId = `manus${timestamp}`;
 
 const env = {
   // App branding - update these values directly (do not use env vars)
-  appName: "SoundCheck - 音樂活動社交平台",
+  appName: "SoundCheck",
   appSlug: "soundcheck",
   // S3 URL of the app logo - set this to the URL returned by generate_image when creating custom logo
   // Leave empty to use the default icon from assets/images/icon.png
-  logoUrl: "",
+  logoUrl: "https://private-us-east-1.manuscdn.com/sessionFile/Le7oCDArQfb3hfDkk3Zd6y/sandbox/zUM5hoLC6l2j6viTXG5syj-img-1_1770585087000_na1fn_c291bmRjaGVjay1sb2dv.png?x-oss-process=image/resize,w_1920,h_1920/format,webp/quality,q_80&Expires=1798761600&Policy=eyJTdGF0ZW1lbnQiOlt7IlJlc291cmNlIjoiaHR0cHM6Ly9wcml2YXRlLXVzLWVhc3QtMS5tYW51c2Nkbi5jb20vc2Vzc2lvbkZpbGUvTGU3b0NEQXJRZmIzaGZEa2szWmQ2eS9zYW5kYm94L3pVTTVob0xDNmwyajZ2aVRYRzVzeWotaW1nLTFfMTc3MDU4NTA4NzAwMF9uYTFmbl9jMjkxYm1SamFHVmpheTFzYjJkdi5wbmc~eC1vc3MtcHJvY2Vzcz1pbWFnZS9yZXNpemUsd18xOTIwLGhfMTkyMC9mb3JtYXQsd2VicC9xdWFsaXR5LHFfODAiLCJDb25kaXRpb24iOnsiRGF0ZUxlc3NUaGFuIjp7IkFXUzpFcG9jaFRpbWUiOjE3OTg3NjE2MDB9fX1dfQ__&Key-Pair-Id=K2HSFNDJXOU9YS&Signature=lnYydNGTasHs2XMdn97aSDys4zu3gxUKiqKNV9iUbpfSzQif0NS5YZDU9IklKC0NwwzSJs3GQsHxLA52wiOtQfsREkFVjy4EeDrYsDE2bf14PZzNKFx7U48WIXyvomdpMyP2DyJIVFbE7H95Xvfe9RQFNNaDR2f3~KBnKmsu8rFBo61f~oA0cHdgVhz1ZMsGX~-x1PdUDdg6XB-uhvhUgGaDZN032k6omTAmGAA4yzzod5JXefdhpx4cp28JwyboUAP8gB8KvuTNJXXLXf1TmHCH1cPUmWlbVCU1oQVcKz9m-nGYCEBYH3dQIVnuJaCT0mqvlol2Qqa1DfNg05oydg__",
   scheme: schemeFromBundleId,
   iosBundleId: bundleId,
   androidPackage: bundleId,
