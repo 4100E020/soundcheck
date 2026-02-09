@@ -265,10 +265,10 @@ export function getEventTypeLabel(type: MockEvent["eventType"]): string {
 // 獲取揪團類型標籤和顏色
 export function getCrewTypeInfo(type: MockCrew["type"]): { label: string; emoji: string; color: string } {
   const info = {
-    transport: { label: "交通", emoji: "🔴", color: "#FF5252" },
-    accommodation: { label: "住宿", emoji: "🔵", color: "#2196F3" },
-    onsite: { label: "現場", emoji: "🟢", color: "#00D9A3" },
-    ticket: { label: "票券", emoji: "🟡", color: "#FFC107" },
+    transport: { label: "交通共乘", emoji: "🚗", color: "#FF5252" },
+    accommodation: { label: "住宿分攤", emoji: "🏨", color: "#2196F3" },
+    onsite: { label: "現場揪人", emoji: "🎤", color: "#00D9A3" },
+    ticket: { label: "票券交易", emoji: "🎫", color: "#FFC107" },
   };
   return info[type];
 }
