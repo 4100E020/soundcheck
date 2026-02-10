@@ -18,6 +18,7 @@ import {
   chatRoomMembers,
   messages,
   musicProfiles,
+  standardizedEvents,
 } from "../drizzle/schema";
 
 export const appRouter = router({
@@ -35,6 +36,62 @@ export const appRouter = router({
   // 活動 API
   // ============================================================
   events: router({
+    // 真實活動數據 (從爬蟲獲取)
+    listReal: publicProcedure
+      .input(
+        z.object({
+          category: z.enum(["concert", "festival", "club_event", "live_music", "dj_set", "workshop", "conference", "party", "other"]).optional(),
+          city: z.string().optional(),
+          startDate: z.date().optional(),
+          endDate: z.date().optional(),
+          limit: z.number().optional().default(50),
+          offset: z.number().optional().default(0),
+        }).optional(),
+      )
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return [];
+        
+        let query = db.select().from(standardizedEvents);
+        
+        // Apply filters
+        const conditions = [];
+        if (input?.category) {
+          conditions.push(eq(standardizedEvents.category, input.category));
+        }
+        if (input?.startDate) {
+          conditions.push(sql`${standardizedEvents.startDate} >= ${input.startDate}`);
+        }
+        if (input?.endDate) {
+          conditions.push(sql`${standardizedEvents.endDate} <= ${input.endDate}`);
+        }
+        
+        if (conditions.length > 0) {
+          query = query.where(and(...conditions)) as any;
+        }
+        
+        const result = await query
+          .orderBy(asc(standardizedEvents.startDate))
+          .limit(input?.limit ?? 50)
+          .offset(input?.offset ?? 0);
+        
+        return result;
+      }),
+
+    getRealById: publicProcedure
+      .input(z.object({ id: z.string() }))
+      .query(async ({ input }) => {
+        const db = await getDb();
+        if (!db) return null;
+        const result = await db
+          .select()
+          .from(standardizedEvents)
+          .where(eq(standardizedEvents.id, input.id))
+          .limit(1);
+        return result[0] ?? null;
+      }),
+
+    // 舊的模擬數據 API (保留向後兼容)
     list: publicProcedure
       .input(
         z.object({

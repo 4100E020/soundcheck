@@ -292,3 +292,106 @@ export type InsertChatRoomMember = typeof chatRoomMembers.$inferInsert;
 
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = typeof messages.$inferInsert;
+
+// ============================================================
+// 標準化活動資料表 (從爬蟲獲取)
+// ============================================================
+
+export const standardizedEvents = mysqlTable("standardized_events", {
+  // 基本信息
+  id: varchar("id", { length: 36 }).primaryKey(), // UUID
+  sourceId: varchar("sourceId", { length: 255 }).notNull(),
+  source: mysqlEnum("source", ["kktix", "indievox", "accupass", "tixcraft", "ibon", "manual"]).notNull(),
+  sourceUrl: varchar("sourceUrl", { length: 512 }).notNull(),
+  
+  // 活動信息
+  title: varchar("title", { length: 255 }).notNull(),
+  description: text("description").notNull(),
+  descriptionHtml: text("descriptionHtml"),
+  summary: text("summary"),
+  
+  // 時間信息
+  startDate: timestamp("startDate").notNull(),
+  endDate: timestamp("endDate").notNull(),
+  publishedAt: timestamp("publishedAt").notNull(),
+  
+  // 場地信息 (JSON)
+  venue: json("venue").$type<{
+    name: string;
+    address: string;
+    city: string;
+    district?: string;
+    location: {
+      latitude: number;
+      longitude: number;
+    };
+    capacity?: number;
+    venueType?: string;
+  }>().notNull(),
+  
+  // 票務信息 (JSON)
+  ticketing: json("ticketing").$type<{
+    status: string;
+    priceRange: {
+      min: number;
+      max: number;
+      currency: string;
+    };
+    isFree: boolean;
+    ticketUrl?: string;
+    ticketPlatform?: string;
+  }>().notNull(),
+  
+  // 分類與標籤
+  category: mysqlEnum("category", [
+    "concert",
+    "festival",
+    "club_event",
+    "live_music",
+    "dj_set",
+    "workshop",
+    "conference",
+    "party",
+    "other",
+  ]).notNull(),
+  tags: json("tags").$type<string[]>(),
+  genres: json("genres").$type<string[]>(),
+  
+  // 主辦方信息 (JSON)
+  organizer: json("organizer").$type<{
+    name: string;
+    organizationId?: string;
+  }>().notNull(),
+  
+  // 媒體資源 (JSON)
+  images: json("images").$type<Array<{
+    url: string;
+    type: string;
+  }>>().notNull(),
+  
+  // 陣容信息 (JSON, 可選)
+  lineup: json("lineup").$type<Array<{
+    name: string;
+    role?: string;
+    order?: number;
+  }>>(),
+  
+  // 元數據 (JSON)
+  metadata: json("metadata").$type<{
+    scrapedAt: Date;
+    lastCheckedAt: Date;
+    version: number;
+    isActive: boolean;
+    qualityScore?: number;
+  }>().notNull(),
+  
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+}, (table) => ({
+  sourceIdx: uniqueIndex("source_sourceId_idx").on(table.source, table.sourceId),
+  startDateIdx: index("startDate_idx").on(table.startDate),
+  categoryIdx: index("category_idx").on(table.category),
+}));
+
+export type StandardizedEvent = typeof standardizedEvents.$inferSelect;
+export type InsertStandardizedEvent = typeof standardizedEvents.$inferInsert;
