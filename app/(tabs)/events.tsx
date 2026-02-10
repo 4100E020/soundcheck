@@ -75,10 +75,20 @@ export default function EventsScreen() {
       <ScrollView className="flex-1">
         {/* Header */}
         <View className="px-6 pt-6 pb-4">
-          <Text className="text-3xl font-bold text-foreground">活動</Text>
-          <Text className="text-base text-muted mt-1">
-            探索音樂活動，驗證票根解鎖 VVIP
-          </Text>
+          <View className="flex-row items-center justify-between">
+            <View className="flex-1">
+              <Text className="text-3xl font-bold text-foreground">活動</Text>
+              <Text className="text-base text-muted mt-1">
+                探索音樂活動，驗證票根解鎖 VVIP
+              </Text>
+            </View>
+            <TouchableOpacity
+              onPress={() => router.push("/nearby-events")}
+              className="bg-primary/10 px-4 py-3 rounded-full border border-primary"
+            >
+              <Text className="text-xs font-bold text-primary">📍 附近</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Filter & Sort Bar */}
