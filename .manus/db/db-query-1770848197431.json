@@ -1,0 +1,14 @@
+{
+  "query": "SELECT COUNT(*) as total, SUM(CASE WHEN images IS NOT NULL AND JSON_LENGTH(images) > 0 THEN 1 ELSE 0 END) as with_images FROM standardized_events;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user XDitxHfNNmk4atg.root --database JQrfdruCyxS49XrmnYUv4K --execute SELECT COUNT(*) as total, SUM(CASE WHEN images IS NOT NULL AND JSON_LENGTH(images) > 0 THEN 1 ELSE 0 END) as with_images FROM standardized_events;",
+  "rows": [
+    {
+      "total": "11",
+      "with_images": "11"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\twith_images\n11\t11\n",
+  "stderr": "",
+  "execution_time_ms": 1606
+}

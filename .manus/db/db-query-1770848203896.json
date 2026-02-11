@@ -1,0 +1,25 @@
+{
+  "query": "SELECT title, source, images FROM standardized_events LIMIT 3;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user XDitxHfNNmk4atg.root --database JQrfdruCyxS49XrmnYUv4K --execute SELECT title, source, images FROM standardized_events LIMIT 3;",
+  "rows": [
+    {
+      "title": "8／20 ASIA BEATBOX CHAMPIONSHIP 2017",
+      "source": "kktix",
+      "images": "[{\"type\": \"cover\", \"url\": \"https://assets.kktix.io/upload_images/65193/poster_layout_cht-compressor_mini_original.jpg\"}]"
+    },
+    {
+      "title": "2014 滅火器 On Fire Day 演唱會",
+      "source": "kktix",
+      "images": "[{\"type\": \"cover\", \"url\": \"https://assets.kktix.io/upload_images/36437/512_512_original.jpg\"}]"
+    },
+    {
+      "title": "亞洲Beatbox公開賽 ",
+      "source": "kktix",
+      "images": "[{\"type\": \"cover\", \"url\": \"https://assets.kktix.io/upload_images/52749/__BEATBOX___BANNER_original.jpg\"}]"
+    }
+  ],
+  "messages": [],
+  "stdout": "title\tsource\timages\n8／20 ASIA BEATBOX CHAMPIONSHIP 2017\tkktix\t[{\"type\": \"cover\", \"url\": \"https://assets.kktix.io/upload_images/65193/poster_layout_cht-compressor_mini_original.jpg\"}]\n2014 滅火器 On Fire Day 演唱會\tkktix\t[{\"type\": \"cover\", \"url\": \"https://assets.kktix.io/upload_images/36437/512_512_original.jpg\"}]\n亞洲Beatbox公開賽 \tkktix\t[{\"type\": \"cover\", \"url\": \"https://assets.kktix.io/upload_images/52749/__BEATBOX___BANNER_original.jpg\"}]\n",
+  "stderr": "",
+  "execution_time_ms": 1509
+}

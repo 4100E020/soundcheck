@@ -396,3 +396,4 @@ export const standardizedEvents = mysqlTable("standardized_events", {
 
 export type StandardizedEvent = typeof standardizedEvents.$inferSelect;
 export type InsertStandardizedEvent = typeof standardizedEvents.$inferInsert;
+

@@ -157,3 +157,27 @@
 - [x] 優化 Accupass 爬蟲抓取真實封面圖片
 - [x] 測試爬蟲並驗證圖片數據正確性
 - [x] 確認活動列表和詳情頁顯示真實圖片
+
+## 配對與聊天功能實作
+- [x] 設計配對資料庫 schema（matches, likes, swipes）
+- [x] 設計聊天資料庫 schema（conversations, messages）
+- [x] 建立資料庫遷移檔案（schema 已存在）
+- [x] 實作配對 API（like, pass, getMatches）
+- [x] 實作聊天 API（sendMessage, getConversations, getMessages）
+- [x] 更新首頁探索頁使用真實配對邏輯
+- [x] 更新聊天頁使用真實聊天數據
+- [x] 更新聊天詳情頁使用真實訊息數據
+
+## 爬蟲執行與數據填充
+- [x] 清空現有活動數據
+- [x] 執行 KKTIX 爬蟲
+- [ ] 執行 iNDIEVOX 爬蟲
+- [ ] 執行 Accupass 爬蟲
+- [x] 驗證活動圖片已正確抓取
+- [x] 驗證活動數據完整性
+
+## Mock 數據移除
+- [x] 移除 lib/mock-data.ts 的使用（探索頁）
+- [x] 移除 lib/mock-chat-data.ts 的使用
+- [x] 確認所有頁面使用真實 API
+- [x] 測試完整應用流程

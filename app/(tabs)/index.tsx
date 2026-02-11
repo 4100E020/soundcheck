@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import {
   ScrollView,
   Text,
@@ -8,15 +8,26 @@ import {
   Platform,
   Animated as RNAnimated,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
-import { mockUsers } from "@/lib/mock-data";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { useAuth } from "@/lib/auth-context";
+import { trpc } from "@/lib/trpc";
 import * as Haptics from "expo-haptics";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
+
+type DiscoverUser = {
+  id: number;
+  nickname: string | null;
+  avatar: string | null;
+  age: number | null;
+  bio: string | null;
+  isVVIP: boolean;
+};
 
 /**
  * 探索頁面
@@ -26,10 +37,28 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 export default function DiscoverScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [dailySwipeCount, setDailySwipeCount] = useState(0);
   const [showMatchAnimation, setShowMatchAnimation] = useState(false);
   const maxDailySwipes = 30;
+
+  // Fetch discover users
+  const { data: users = [], isLoading, refetch } = trpc.matching.getDiscoverUsers.useQuery(
+    undefined,
+    { enabled: !!user }
+  );
+
+  // Swipe mutation
+  const swipeMutation = trpc.matching.swipe.useMutation({
+    onSuccess: (data) => {
+      if (data.matched) {
+        showMatchSuccess();
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+      }
+    },
+  });
 
   // Animation refs
   const cardOpacity = useRef(new RNAnimated.Value(1)).current;
@@ -37,8 +66,10 @@ export default function DiscoverScreen() {
   const matchScale = useRef(new RNAnimated.Value(0)).current;
   const matchOpacity = useRef(new RNAnimated.Value(0)).current;
 
-  const currentUser = mockUsers[currentIndex];
-  const hasMoreUsers = currentIndex < mockUsers.length - 1;
+  const currentUser = users[currentIndex];
+  const hasMoreUsers = currentIndex < users.length - 1;
+  // Note: dailySwipeCount is tracked in backend, we'll show 0 for now
+  const dailySwipeCount = 0;
   const canSwipe = dailySwipeCount < maxDailySwipes;
 
   const animateSwipe = useCallback(
@@ -100,21 +131,17 @@ export default function DiscoverScreen() {
   }, [matchScale, matchOpacity]);
 
   const handleLike = () => {
-    if (!canSwipe || !currentUser) return;
+    if (!canSwipe || !currentUser || !user) return;
 
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     animateSwipe("right", () => {
-      setDailySwipeCount((c) => c + 1);
-      // 30% chance of match for demo
-      if (Math.random() > 0.7) {
-        showMatchSuccess();
-        if (Platform.OS !== "web") {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        }
-      }
+      swipeMutation.mutate({
+        targetUserId: currentUser.id,
+        action: "like",
+      });
       if (hasMoreUsers) {
         setCurrentIndex((i) => i + 1);
       }
@@ -122,14 +149,17 @@ export default function DiscoverScreen() {
   };
 
   const handlePass = () => {
-    if (!canSwipe || !currentUser) return;
+    if (!canSwipe || !currentUser || !user) return;
 
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
 
     animateSwipe("left", () => {
-      setDailySwipeCount((c) => c + 1);
+      swipeMutation.mutate({
+        targetUserId: currentUser.id,
+        action: "pass",
+      });
       if (hasMoreUsers) {
         setCurrentIndex((i) => i + 1);
       }
@@ -143,9 +173,44 @@ export default function DiscoverScreen() {
     }
     router.push({
       pathname: "/song-picker",
-      params: { targetName: currentUser.nickname },
+      params: { targetName: currentUser.nickname || "對方" },
     });
   };
+
+  // Show login prompt if not logged in
+  if (!user) {
+    return (
+      <ScreenContainer className="px-6">
+        <View className="flex-1 items-center justify-center gap-4">
+          <IconSymbol name="heart.fill" size={64} color={colors.muted} />
+          <Text className="text-xl font-semibold text-foreground text-center">
+            登入後開始探索
+          </Text>
+          <Text className="text-sm text-muted text-center">
+            登入後即可開始配對，找到志同道合的音樂夥伴
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.push("/auth/login" as any)}
+            className="bg-primary px-8 py-3 rounded-full mt-4"
+          >
+            <Text className="text-background font-semibold">立即登入</Text>
+          </TouchableOpacity>
+        </View>
+      </ScreenContainer>
+    );
+  }
+
+  // Show loading state
+  if (isLoading) {
+    return (
+      <ScreenContainer className="px-6">
+        <View className="flex-1 items-center justify-center">
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text className="text-sm text-muted mt-4">載入中...</Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   return (
     <ScreenContainer className="px-6">
@@ -160,13 +225,15 @@ export default function DiscoverScreen() {
               </Text>
             </View>
             {/* Who Likes Me Button (VVIP) */}
-            <TouchableOpacity
-              onPress={() => router.push("/who-likes-me")}
-              className="bg-primary/10 px-4 py-2 rounded-full flex-row items-center gap-1"
-            >
-              <IconSymbol name="heart.fill" size={16} color={colors.primary} />
-              <Text className="text-sm font-semibold text-primary">5</Text>
-            </TouchableOpacity>
+            {user.isVVIP && (
+              <TouchableOpacity
+                onPress={() => router.push("/who-likes-me")}
+                className="bg-primary/10 px-4 py-2 rounded-full flex-row items-center gap-1"
+              >
+                <IconSymbol name="heart.fill" size={16} color={colors.primary} />
+                <Text className="text-sm font-semibold text-primary">?</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
           {/* Daily Limit */}
@@ -190,7 +257,11 @@ export default function DiscoverScreen() {
                 <View className="bg-surface rounded-3xl overflow-hidden border border-border shadow-lg">
                   {/* Avatar */}
                   <Image
-                    source={{ uri: currentUser.avatar }}
+                    source={{
+                      uri:
+                        currentUser.avatar ||
+                        `https://api.dicebear.com/7.x/avataaars/png?seed=${currentUser.id}`,
+                    }}
                     className="w-full aspect-square"
                     resizeMode="cover"
                   />
@@ -198,25 +269,18 @@ export default function DiscoverScreen() {
                   {/* User Info */}
                   <View className="p-5 gap-3">
                     {/* Name & VVIP */}
-                    <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-2">
-                        <Text className="text-2xl font-bold text-foreground">
-                          {currentUser.nickname}
-                        </Text>
-                        {currentUser.isVVIP && (
-                          <View className="bg-success/10 px-2 py-1 rounded-full">
-                            <Text className="text-xs font-semibold text-success">VVIP</Text>
-                          </View>
-                        )}
-                      </View>
-                      <Text className="text-lg text-muted">{currentUser.age}</Text>
-                    </View>
-
-                    {/* Match Score */}
-                    <View className="bg-primary/10 px-4 py-2 rounded-xl self-start">
-                      <Text className="text-sm font-bold text-primary">
-                        {currentUser.matchScore}% 匹配
+                    <View className="flex-row items-center gap-2">
+                      <Text className="text-2xl font-bold text-foreground">
+                        {currentUser.nickname || "匿名用戶"}
                       </Text>
+                      {currentUser.age && (
+                        <Text className="text-xl text-muted">{currentUser.age}</Text>
+                      )}
+                      {currentUser.isVVIP && (
+                        <View className="bg-primary/10 px-2 py-0.5 rounded-full">
+                          <Text className="text-xs font-semibold text-primary">VVIP</Text>
+                        </View>
+                      )}
                     </View>
 
                     {/* Bio */}
@@ -226,117 +290,94 @@ export default function DiscoverScreen() {
                       </Text>
                     )}
 
-                    {/* Top Artists */}
-                    <View>
-                      <Text className="text-xs text-muted mb-2">喜歡的藝人</Text>
-                      <View className="flex-row flex-wrap gap-2">
-                        {currentUser.topArtists.map((artist, index) => (
-                          <View key={index} className="bg-primary/10 px-3 py-1 rounded-full">
-                            <Text className="text-xs font-semibold text-primary">{artist}</Text>
-                          </View>
-                        ))}
-                      </View>
-                    </View>
 
-                    {/* Status */}
-                    {currentUser.status && (
-                      <View className="bg-warning/10 px-3 py-2 rounded-xl">
-                        <Text className="text-sm text-warning">{currentUser.status}</Text>
-                      </View>
-                    )}
+
+                    {/* Song Icebreaker Button */}
+                    <TouchableOpacity
+                      onPress={handleSongIcebreaker}
+                      className="bg-primary/10 px-4 py-3 rounded-xl flex-row items-center justify-center gap-2 mt-2"
+                    >
+                      <IconSymbol name="music.note" size={18} color={colors.primary} />
+                      <Text className="text-sm font-semibold text-primary">
+                        用歌曲破冰
+                      </Text>
+                    </TouchableOpacity>
                   </View>
                 </View>
               </RNAnimated.View>
 
               {/* Action Buttons */}
-              <View className="flex-row items-center justify-center gap-5 mt-6">
-                {/* Pass */}
+              <View className="flex-row items-center justify-center gap-8 mt-8">
+                {/* Pass Button */}
                 <TouchableOpacity
                   onPress={handlePass}
-                  className="bg-surface rounded-full p-4 border-2 border-border active:opacity-70"
+                  className="w-16 h-16 bg-surface rounded-full items-center justify-center border-2 border-border shadow-sm active:opacity-70"
                 >
-                  <Text className="text-2xl">✕</Text>
+                  <IconSymbol name="xmark" size={28} color={colors.error} />
                 </TouchableOpacity>
 
-                {/* Song Icebreaker */}
-                <TouchableOpacity
-                  onPress={handleSongIcebreaker}
-                  className="bg-primary/10 rounded-full p-4 border-2 border-primary/30 active:opacity-70"
-                >
-                  <Text className="text-2xl">🎵</Text>
-                </TouchableOpacity>
-
-                {/* Like */}
+                {/* Like Button */}
                 <TouchableOpacity
                   onPress={handleLike}
-                  className="bg-primary rounded-full p-5 active:opacity-70"
+                  className="w-20 h-20 bg-primary rounded-full items-center justify-center shadow-lg active:opacity-80"
                 >
-                  <IconSymbol name="heart.fill" size={36} color="#FFFFFF" />
+                  <IconSymbol name="heart.fill" size={32} color={colors.background} />
                 </TouchableOpacity>
               </View>
             </View>
+          ) : !canSwipe ? (
+            // Daily Limit Reached
+            <View className="flex-1 items-center justify-center gap-4">
+              <IconSymbol name="clock" size={64} color={colors.muted} />
+              <Text className="text-xl font-semibold text-foreground text-center">
+                今日配對次數已用完
+              </Text>
+              <Text className="text-sm text-muted text-center px-8">
+                每日限量 {maxDailySwipes} 次滑動，明天再來吧！
+              </Text>
+            </View>
           ) : (
-            <View className="flex-1 items-center justify-center">
-              <View className="bg-surface rounded-2xl p-8 border border-border items-center gap-4">
-                <Text className="text-6xl">🎶</Text>
-                <Text className="text-xl font-bold text-foreground text-center">
-                  {!canSwipe ? "今日配對次數已用完" : "沒有更多用戶了"}
-                </Text>
+            // No More Users
+            <View className="flex-1 items-center justify-center gap-4">
+              <IconSymbol name="checkmark.circle" size={64} color={colors.success} />
+              <Text className="text-xl font-semibold text-foreground text-center">
+                暫時沒有更多用戶
+              </Text>
+              <Text className="text-sm text-muted text-center px-8">
+                稍後再來看看，或許會有新的音樂夥伴加入！
+              </Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setCurrentIndex(0);
+                  refetch();
+                }}
+                className="bg-primary px-6 py-3 rounded-full mt-4"
+              >
+                <Text className="text-background font-semibold">重新載入</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Match Success Animation */}
+          {showMatchAnimation && (
+            <View className="absolute inset-0 items-center justify-center bg-black/50">
+              <RNAnimated.View
+                style={{
+                  transform: [{ scale: matchScale }],
+                  opacity: matchOpacity,
+                }}
+                className="bg-background rounded-3xl p-8 items-center gap-4 shadow-2xl"
+              >
+                <IconSymbol name="heart.fill" size={80} color={colors.primary} />
+                <Text className="text-3xl font-bold text-foreground">配對成功！</Text>
                 <Text className="text-sm text-muted text-center">
-                  {!canSwipe
-                    ? "上傳票根驗證解鎖無限配對"
-                    : "請稍後再回來看看"}
+                  你們互相喜歡，快去聊天吧
                 </Text>
-                {!canSwipe && (
-                  <TouchableOpacity
-                    onPress={() => {
-                      router.push({
-                        pathname: "/(tabs)/events",
-                      } as any);
-                    }}
-                    className="bg-primary px-6 py-3 rounded-full mt-2"
-                  >
-                    <Text className="text-white font-bold">去看活動</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
+              </RNAnimated.View>
             </View>
           )}
         </View>
       </ScrollView>
-
-      {/* Match Success Overlay */}
-      {showMatchAnimation && (
-        <View
-          className="absolute inset-0 items-center justify-center"
-          style={{ backgroundColor: "rgba(0,0,0,0.6)" }}
-        >
-          <RNAnimated.View
-            style={{
-              transform: [{ scale: matchScale }],
-              opacity: matchOpacity,
-              alignItems: "center",
-            }}
-          >
-            <Text className="text-6xl mb-4">🎉</Text>
-            <Text className="text-3xl font-bold text-white mb-2">配對成功！</Text>
-            <Text className="text-base text-white/80">
-              你和 {currentUser?.nickname} 互相喜歡
-            </Text>
-            <TouchableOpacity
-              onPress={() => {
-                setShowMatchAnimation(false);
-                matchScale.setValue(0);
-                matchOpacity.setValue(0);
-                router.push("/(tabs)/chat" as any);
-              }}
-              className="bg-white/20 rounded-full px-6 py-3 mt-4"
-            >
-              <Text className="text-white font-semibold">開始聊天吧</Text>
-            </TouchableOpacity>
-          </RNAnimated.View>
-        </View>
-      )}
     </ScreenContainer>
   );
 }

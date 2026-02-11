@@ -180,3 +180,6 @@ export function useAuthContext() {
   }
   return context;
 }
+
+// Alias for convenience
+export const useAuth = useAuthContext;
