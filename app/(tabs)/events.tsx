@@ -1,7 +1,8 @@
 import { useState, useMemo } from "react";
 import { ScrollView, Text, View, TouchableOpacity, Image, Platform } from "react-native";
 import { ScreenContainer } from "@/components/screen-container";
-import { mockEvents, getDaysUntil, formatEventDate, getEventTypeLabel, type MockEvent } from "@/lib/mock-data";
+import { getDaysUntil, formatEventDate, getEventTypeLabel, type MockEvent } from "@/lib/mock-data";
+import { trpc } from "@/lib/trpc";
 import { useRouter } from "expo-router";
 import * as Haptics from "expo-haptics";
 
@@ -18,8 +19,35 @@ export default function EventsScreen() {
   const [sortBy, setSortBy] = useState<SortBy>("date");
   const [showSort, setShowSort] = useState(false);
 
+  // Fetch real events from API
+  const { data: realEvents, isLoading } = trpc.events.listReal.useQuery({
+    limit: 50,
+    offset: 0,
+  });
+
   const filteredAndSortedEvents = useMemo(() => {
-    let events = [...mockEvents];
+    if (!realEvents) return [];
+    
+    // Convert real events to mock event format for compatibility
+    let events: MockEvent[] = realEvents.map((e, index) => ({
+      id: index + 1, // Use index as numeric ID for compatibility
+      name: e.title,
+      description: e.description || '',
+      eventType: e.category === 'concert' ? 'concert' : e.category === 'festival' ? 'festival' : 'livehouse',
+      venue: e.venue.name,
+      address: e.venue.address || '',
+      region: 'north' as const, // TODO: Map city to region properly
+      startDate: new Date(e.startDate),
+      endDate: new Date(e.endDate),
+      imageUrl: e.images[0]?.url || 'https://via.placeholder.com/400x300',
+      coverImage: e.images[0]?.url || 'https://via.placeholder.com/400x300',
+      participantCount: Math.floor(Math.random() * 1000), // TODO: Add real participant count
+      vvipCount: 0, // TODO: Calculate from tickets
+      price: e.ticketing.isFree ? 0 : e.ticketing.priceRange.min,
+      isFree: e.ticketing.isFree,
+      lineup: e.lineup?.map(l => l.name) || [],
+      genres: e.genres || [],
+    }));
 
     // Filter
     if (filter !== "all") {
@@ -40,7 +68,17 @@ export default function EventsScreen() {
     }
 
     return events;
-  }, [filter, sortBy]);
+  }, [realEvents, filter, sortBy]);
+
+  if (isLoading) {
+    return (
+      <ScreenContainer>
+        <View className="flex-1 items-center justify-center">
+          <Text className="text-muted">載入活動中...</Text>
+        </View>
+      </ScreenContainer>
+    );
+  }
 
   const handleFilter = (f: EventFilter) => {
     setFilter(f);
