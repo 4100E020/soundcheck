@@ -320,13 +320,21 @@ export async function scrapeIndievoxEvents(): Promise<StandardizedEventData[]> {
   const maxEvents = 20;
   const itemsToScrape = listItems.slice(0, maxEvents);
 
+  const now = new Date();
+  
   for (const item of itemsToScrape) {
     try {
       const detail = await fetchEventDetail(item);
       if (detail) {
         const event = await transformIndievoxEvent(item, detail);
-        events.push(event);
-        console.log(`[iNDIEVOX] ✓ Scraped: ${event.title}`);
+        
+        // 只保留未來的活動
+        if (event.endDate > now) {
+          events.push(event);
+          console.log(`[iNDIEVOX] ✓ Scraped: ${event.title}`);
+        } else {
+          console.log(`[iNDIEVOX] ⊘ Skipped (past event): ${event.title}`);
+        }
       }
       // 避免請求過於頻繁
       await new Promise((resolve) => setTimeout(resolve, 1500));

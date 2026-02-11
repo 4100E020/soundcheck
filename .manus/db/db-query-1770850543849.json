@@ -1,0 +1,28 @@
+{
+  "query": "\nSELECT \n  source,\n  COUNT(*) as total,\n  MIN(DATE(startDate)) as earliest_start,\n  MAX(DATE(endDate)) as latest_end\nFROM standardized_events\nGROUP BY source\nORDER BY source;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user XDitxHfNNmk4atg.root --database JQrfdruCyxS49XrmnYUv4K --execute \nSELECT \n  source,\n  COUNT(*) as total,\n  MIN(DATE(startDate)) as earliest_start,\n  MAX(DATE(endDate)) as latest_end\nFROM standardized_events\nGROUP BY source\nORDER BY source;\n",
+  "rows": [
+    {
+      "source": "kktix",
+      "total": "8",
+      "earliest_start": "2016-08-20",
+      "latest_end": "2026-02-11"
+    },
+    {
+      "source": "indievox",
+      "total": "13",
+      "earliest_start": "2026-02-12",
+      "latest_end": "2026-02-28"
+    },
+    {
+      "source": "accupass",
+      "total": "15",
+      "earliest_start": "2026-01-31",
+      "latest_end": "2026-02-11"
+    }
+  ],
+  "messages": [],
+  "stdout": "source\ttotal\tearliest_start\tlatest_end\nkktix\t8\t2016-08-20\t2026-02-11\nindievox\t13\t2026-02-12\t2026-02-28\naccupass\t15\t2026-01-31\t2026-02-11\n",
+  "stderr": "",
+  "execution_time_ms": 1627
+}

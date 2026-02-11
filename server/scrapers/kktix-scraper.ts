@@ -497,11 +497,19 @@ export async function scrapeOrganizationEvents(
   
   const events: StandardizedEvent[] = [];
   
+  const now = new Date();
+  
   for (const entry of feed.feed.entry) {
     try {
       const event = await transformKKTIXEvent(entry, organizationId);
-      events.push(event);
-      console.log(`✓ Scraped: ${event.title}`);
+      
+      // 只保留未來的活動（開始時間在現在之後，或結束時間在現在之後）
+      if (event.endDate > now) {
+        events.push(event);
+        console.log(`✓ Scraped: ${event.title}`);
+      } else {
+        console.log(`⊘ Skipped (past event): ${event.title}`);
+      }
     } catch (error) {
       console.error(`Failed to transform event: ${entry.title[0]}`, error);
     }

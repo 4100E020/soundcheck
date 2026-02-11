@@ -333,13 +333,21 @@ export async function scrapeAccupassEvents(): Promise<StandardizedEventData[]> {
   const maxEvents = 15; // 限制爬取數量
   const itemsToScrape = allItems.slice(0, maxEvents);
 
+  const now = new Date();
+  
   for (const item of itemsToScrape) {
     try {
       const detail = await fetchAccupassDetail(item);
       if (detail) {
         const event = await transformAccupassEvent(item, detail);
-        events.push(event);
-        console.log(`[Accupass] ✓ Scraped: ${event.title}`);
+        
+        // 只保留未來的活動
+        if (event.endDate > now) {
+          events.push(event);
+          console.log(`[Accupass] ✓ Scraped: ${event.title}`);
+        } else {
+          console.log(`[Accupass] ⊘ Skipped (past event): ${event.title}`);
+        }
       }
       await new Promise((resolve) => setTimeout(resolve, 1500));
     } catch (error: any) {
