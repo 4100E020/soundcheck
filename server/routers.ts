@@ -4,6 +4,8 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
 import { getDb } from "./db";
 import { z } from "zod";
+import bcrypt from "bcryptjs";
+import { SignJWT } from "jose";
 import { eq, and, desc, asc, sql, or } from "drizzle-orm";
 import {
   events,
@@ -25,6 +27,105 @@ export const appRouter = router({
   system: systemRouter,
   auth: router({
     me: publicProcedure.query((opts) => opts.ctx.user),
+    
+    // 註冊
+    signup: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string().min(6),
+          displayName: z.string().min(1),
+          birthDate: z.string().optional(),
+          gender: z.enum(["male", "female", "other", "prefer_not_to_say"]).optional(),
+          location: z.object({
+            latitude: z.number(),
+            longitude: z.number(),
+            city: z.string().optional(),
+          }).optional(),
+          musicGenres: z.array(z.string()).optional(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        
+        // 檢查 email 是否已存在
+        const existing = await db.query.users.findFirst({
+          where: eq(users.email, input.email),
+        });
+        
+        if (existing) {
+          throw new Error("此 email 已被註冊");
+        }
+        
+        // Hash 密碼
+        const passwordHash = await bcrypt.hash(input.password, 10);
+        
+        // 建立用戶
+        const [user] = await db.insert(users).values({
+          email: input.email,
+          passwordHash,
+          displayName: input.displayName,
+          birthDate: input.birthDate ? new Date(input.birthDate) : null,
+          gender: input.gender || null,
+          bio: null,
+          avatarUrl: null,
+          location: input.location ? JSON.stringify(input.location) : null,
+          musicGenres: input.musicGenres || [],
+          spotifyConnected: false,
+          verifiedEvents: [],
+          vvipStatus: false,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }).returning();
+        
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+          },
+        };
+      }),
+    
+    // 登入
+    login: publicProcedure
+      .input(
+        z.object({
+          email: z.string().email(),
+          password: z.string(),
+        }),
+      )
+      .mutation(async ({ input, ctx }) => {
+        const db = await getDb();
+        
+        // 查找用戶
+        const user = await db.query.users.findFirst({
+          where: eq(users.email, input.email),
+        });
+        
+        if (!user || !user.passwordHash) {
+          throw new Error("帳號或密碼錯誤");
+        }
+        
+        // 驗證密碼
+        const isValid = await bcrypt.compare(input.password, user.passwordHash);
+        
+        if (!isValid) {
+          throw new Error("帳號或密碼錯誤");
+        }
+        
+        return {
+          user: {
+            id: user.id,
+            email: user.email,
+            displayName: user.displayName,
+            avatarUrl: user.avatarUrl,
+            vvipStatus: user.vvipStatus,
+          },
+        };
+      }),
+    
     logout: publicProcedure.mutation(({ ctx }) => {
       const cookieOptions = getSessionCookieOptions(ctx.req);
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
