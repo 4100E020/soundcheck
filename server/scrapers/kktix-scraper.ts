@@ -331,7 +331,7 @@ function calculateQualityScore(event: StandardizedEvent): number {
   if (event.venue.name !== "待確認") score += 10;
   
   // 重要字段 (30分)
-  if (event.venue.location.latitude && event.venue.location.longitude) score += 10;
+  if (event.venue?.location?.latitude && event.venue?.location?.longitude) score += 10;
   if (event.ticketing.priceRange.min > 0 || event.ticketing.isFree) score += 10;
   if (event.images.length > 0) score += 10;
   
