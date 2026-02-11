@@ -1,0 +1,35 @@
+{
+  "query": "SELECT title, JSON_EXTRACT(images, '$[0].url') as first_image_url, source FROM standardized_events LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user XDitxHfNNmk4atg.root --database JQrfdruCyxS49XrmnYUv4K --execute SELECT title, JSON_EXTRACT(images, '$[0].url') as first_image_url, source FROM standardized_events LIMIT 5;",
+  "rows": [
+    {
+      "title": "8／19 ASIA BEATBOX CHAMPIONSHIP 2017",
+      "first_image_url": "NULL",
+      "source": "kktix"
+    },
+    {
+      "title": "ASIA BEATBOX CHAMPIONSHIP 2017",
+      "first_image_url": "NULL",
+      "source": "kktix"
+    },
+    {
+      "title": "2016張軒睿粉絲見面會",
+      "first_image_url": "NULL",
+      "source": "kktix"
+    },
+    {
+      "title": "2014 滅火器 On Fire Day 演唱會",
+      "first_image_url": "NULL",
+      "source": "kktix"
+    },
+    {
+      "title": "張軒睿2017生日見面會",
+      "first_image_url": "NULL",
+      "source": "kktix"
+    }
+  ],
+  "messages": [],
+  "stdout": "title\tfirst_image_url\tsource\n8／19 ASIA BEATBOX CHAMPIONSHIP 2017\tNULL\tkktix\nASIA BEATBOX CHAMPIONSHIP 2017\tNULL\tkktix\n2016張軒睿粉絲見面會\tNULL\tkktix\n2014 滅火器 On Fire Day 演唱會\tNULL\tkktix\n張軒睿2017生日見面會\tNULL\tkktix\n",
+  "stderr": "",
+  "execution_time_ms": 1632
+}

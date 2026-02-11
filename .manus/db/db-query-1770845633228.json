@@ -1,0 +1,40 @@
+{
+  "query": "SELECT id, title, images, source FROM standardized_events LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user XDitxHfNNmk4atg.root --database JQrfdruCyxS49XrmnYUv4K --execute SELECT id, title, images, source FROM standardized_events LIMIT 5;",
+  "rows": [
+    {
+      "id": "0b95945a-8b17-4d2d-8b75-8f7ebb12865d",
+      "title": "8／19 ASIA BEATBOX CHAMPIONSHIP 2017",
+      "images": "[]",
+      "source": "kktix"
+    },
+    {
+      "id": "33920e44-6436-40a5-b34b-541fec8173f2",
+      "title": "ASIA BEATBOX CHAMPIONSHIP 2017",
+      "images": "[]",
+      "source": "kktix"
+    },
+    {
+      "id": "342f88a5-6a85-4a5e-b674-2255a7a2696c",
+      "title": "2016張軒睿粉絲見面會",
+      "images": "[]",
+      "source": "kktix"
+    },
+    {
+      "id": "3817a1a1-70ff-4727-8cbf-666ddc255e33",
+      "title": "2014 滅火器 On Fire Day 演唱會",
+      "images": "[]",
+      "source": "kktix"
+    },
+    {
+      "id": "6eaed4d3-1d4d-4260-83e1-3602ba6661ad",
+      "title": "張軒睿2017生日見面會",
+      "images": "[]",
+      "source": "kktix"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\ttitle\timages\tsource\n0b95945a-8b17-4d2d-8b75-8f7ebb12865d\t8／19 ASIA BEATBOX CHAMPIONSHIP 2017\t[]\tkktix\n33920e44-6436-40a5-b34b-541fec8173f2\tASIA BEATBOX CHAMPIONSHIP 2017\t[]\tkktix\n342f88a5-6a85-4a5e-b674-2255a7a2696c\t2016張軒睿粉絲見面會\t[]\tkktix\n3817a1a1-70ff-4727-8cbf-666ddc255e33\t2014 滅火器 On Fire Day 演唱會\t[]\tkktix\n6eaed4d3-1d4d-4260-83e1-3602ba6661ad\t張軒睿2017生日見面會\t[]\tkktix\n",
+  "stderr": "",
+  "execution_time_ms": 1560
+}

@@ -1,226 +1,182 @@
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import {
-  ScrollView,
   Text,
   View,
   TouchableOpacity,
   FlatList,
   ActivityIndicator,
-  Alert,
+  Image,
+  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
-import { useLocation } from "@/lib/location-context";
-import { findNearbyEvents, formatDistance, getDirection } from "@/lib/location-utils";
-import { mockEvents } from "@/lib/mock-data";
-import { mockEventsWithLocation } from "@/lib/mock-data-with-location";
+import { trpc } from "@/lib/trpc";
+import {
+  getEventCoverImage,
+  getCategoryLabel,
+  getCategoryEmoji,
+} from "@/lib/event-image-utils";
+import { formatEventDate, getDaysUntil } from "@/lib/mock-data";
 import * as Haptics from "expo-haptics";
-import { Platform } from "react-native";
-
-interface EventWithDistance {
-  id: number;
-  name: string;
-  venue: string;
-  coverImage: string;
-  eventType: string;
-  startDate: Date;
-  participantCount: number;
-  vvipCount: number;
-  latitude?: number;
-  longitude?: number;
-  distance?: number;
-}
 
 /**
  * 附近活動頁面
- * 根據用戶位置顯示附近的活動,按距離排序
+ * 顯示所有活動（按日期排序）
+ * 未來可整合位置 API 做距離排序
  */
 export default function NearbyEventsScreen() {
   const router = useRouter();
   const colors = useColors();
-  const { userLocation, userCity, loading: locationLoading } = useLocation();
 
-  const [events, setEvents] = useState<EventWithDistance[]>([]);
-  const [filteredEvents, setFilteredEvents] = useState<EventWithDistance[]>([]);
-  const [radiusKm, setRadiusKm] = useState(50);
-  const [loading, setLoading] = useState(true);
+  const { data: realEvents, isLoading, error, refetch } = trpc.events.listReal.useQuery({
+    limit: 50,
+    offset: 0,
+  });
 
-  // 初始化活動數據
-  useEffect(() => {
-    setLoading(true);
-    try {
-      // 合併模擬數據
-      const combinedEvents: EventWithDistance[] = mockEvents.map((event, index) => ({
-        ...event,
-        latitude: mockEventsWithLocation[index % mockEventsWithLocation.length].latitude,
-        longitude: mockEventsWithLocation[index % mockEventsWithLocation.length].longitude,
-      }));
+  const events = useMemo(() => {
+    if (!realEvents) return [];
+    return realEvents
+      .map((e) => ({
+        id: e.id,
+        title: e.title,
+        category: e.category,
+        venue: e.venue,
+        startDate: new Date(e.startDate),
+        coverImage: getEventCoverImage(e.id, e.category, e.images),
+        isFree: e.ticketing.isFree,
+        priceMin: e.ticketing.priceRange.min,
+        source: e.source,
+      }))
+      .sort((a, b) => a.startDate.getTime() - b.startDate.getTime());
+  }, [realEvents]);
 
-      setEvents(combinedEvents);
-
-      // 如果有用戶位置,過濾附近活動
-      if (userLocation) {
-        const nearby = findNearbyEvents(userLocation, combinedEvents, radiusKm);
-        setFilteredEvents(nearby);
-      } else {
-        setFilteredEvents(combinedEvents);
-      }
-    } finally {
-      setLoading(false);
-    }
-  }, [userLocation, radiusKm]);
-
-  const handleRadiusChange = (radius: number) => {
-    setRadiusKm(radius);
-    if (Platform.OS !== "web") {
-      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    }
-  };
-
-  const handleEventPress = (eventId: number) => {
+  const handleEventPress = (eventId: string) => {
     router.push(`/event/${eventId}`);
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     }
   };
 
-  const renderEventCard = ({ item }: { item: EventWithDistance }) => (
-    <TouchableOpacity
-      onPress={() => handleEventPress(item.id)}
-      className="bg-surface rounded-2xl overflow-hidden border border-border mb-3"
-    >
-      {/* Event Image */}
-      <View className="w-full h-32 bg-primary/10 items-center justify-center">
-        <Text className="text-4xl">🎵</Text>
-      </View>
+  const renderEventCard = ({ item }: { item: (typeof events)[0] }) => {
+    const daysUntil = getDaysUntil(item.startDate);
+    return (
+      <TouchableOpacity
+        onPress={() => handleEventPress(item.id)}
+        className="bg-surface rounded-2xl overflow-hidden border border-border mb-3"
+        activeOpacity={0.8}
+      >
+        {/* Event Image */}
+        <Image
+          source={{ uri: item.coverImage }}
+          className="w-full h-40"
+          resizeMode="cover"
+        />
 
-      {/* Event Info */}
-      <View className="p-4">
-        <Text className="text-base font-bold text-foreground mb-1 line-clamp-2">
-          {item.name}
-        </Text>
+        {/* Event Info */}
+        <View className="p-4 gap-2">
+          <Text className="text-base font-bold text-foreground" numberOfLines={2}>
+            {item.title}
+          </Text>
 
-        <Text className="text-xs text-muted mb-3">{item.venue}</Text>
+          <Text className="text-xs text-muted" numberOfLines={1}>
+            📍 {item.venue.name}{item.venue.city ? ` · ${item.venue.city}` : ""}
+          </Text>
 
-        {/* Distance & Direction */}
-        {item.distance !== undefined && userLocation && (
-          <View className="flex-row items-center gap-2 mb-3">
-            <View className="bg-primary/10 px-3 py-1 rounded-full">
-              <Text className="text-xs font-semibold text-primary">
-                📍 {formatDistance(item.distance)}
-              </Text>
-            </View>
-            <View className="bg-secondary/10 px-3 py-1 rounded-full">
-              <Text className="text-xs font-semibold text-secondary">
-                {getDirection(userLocation, {
-                  latitude: item.latitude || 0,
-                  longitude: item.longitude || 0,
-                })}
-              </Text>
-            </View>
-          </View>
-        )}
-
-        {/* Event Type & Participants */}
-        <View className="flex-row items-center justify-between">
-          <View className="flex-row items-center gap-2">
-            <Text className="text-xs px-2 py-1 bg-primary/10 rounded-full text-primary font-semibold">
-              {item.eventType === "festival"
-                ? "音樂祭"
-                : item.eventType === "concert"
-                  ? "演唱會"
-                  : "Live House"}
+          <View className="flex-row items-center justify-between mt-1">
+            <Text className="text-xs text-muted">
+              📅 {formatEventDate(item.startDate)}
             </Text>
-          </View>
-
-          <View className="flex-row items-center gap-1">
-            <Text className="text-xs text-muted">👥 {item.participantCount}</Text>
-            {item.vvipCount > 0 && (
-              <Text className="text-xs text-primary font-bold">VVIP {item.vvipCount}</Text>
+            {daysUntil > 0 ? (
+              <View className="bg-warning/10 px-2 py-0.5 rounded-full">
+                <Text className="text-xs font-semibold text-warning">
+                  還有 {daysUntil} 天
+                </Text>
+              </View>
+            ) : (
+              <View className="bg-muted/10 px-2 py-0.5 rounded-full">
+                <Text className="text-xs font-semibold text-muted">已結束</Text>
+              </View>
             )}
           </View>
-        </View>
-      </View>
-    </TouchableOpacity>
-  );
 
-  if (locationLoading || loading) {
+          <View className="flex-row items-center gap-2 mt-1">
+            <View className="bg-primary/10 px-2 py-0.5 rounded-full">
+              <Text className="text-xs text-primary font-semibold">
+                {getCategoryEmoji(item.category)} {getCategoryLabel(item.category)}
+              </Text>
+            </View>
+            <View className="bg-muted/10 px-2 py-0.5 rounded-full">
+              <Text className="text-xs text-muted font-semibold">
+                {item.source.toUpperCase()}
+              </Text>
+            </View>
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  };
+
+  if (isLoading) {
     return (
       <ScreenContainer className="items-center justify-center">
         <ActivityIndicator size="large" color={colors.primary} />
-        <Text className="text-muted mt-4">正在加載附近活動...</Text>
+        <Text className="text-muted mt-4">正在載入活動...</Text>
+      </ScreenContainer>
+    );
+  }
+
+  if (error) {
+    return (
+      <ScreenContainer className="items-center justify-center px-6">
+        <Text className="text-4xl mb-3">😢</Text>
+        <Text className="text-lg font-bold text-foreground mb-2">載入失敗</Text>
+        <Text className="text-sm text-muted text-center mb-4">
+          無法取得活動資料，請稍後重試
+        </Text>
+        <TouchableOpacity
+          onPress={() => refetch()}
+          className="bg-primary px-6 py-3 rounded-full"
+        >
+          <Text className="text-white font-bold">重新載入</Text>
+        </TouchableOpacity>
       </ScreenContainer>
     );
   }
 
   return (
-    <ScreenContainer className="p-0">
-      <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 20 }}>
-        {/* Header */}
-        <View className="px-6 pt-6 pb-4">
-          <TouchableOpacity onPress={() => router.back()}>
-            <Text className="text-2xl text-foreground">←</Text>
-          </TouchableOpacity>
-          <Text className="text-2xl font-bold text-foreground mt-2">附近活動</Text>
-          {userCity && (
-            <Text className="text-sm text-muted mt-1">📍 {userCity} 附近</Text>
-          )}
+    <ScreenContainer>
+      {/* Header */}
+      <View className="px-6 pt-4 pb-4 flex-row items-center">
+        <TouchableOpacity onPress={() => router.back()}>
+          <Text className="text-2xl text-foreground">←</Text>
+        </TouchableOpacity>
+        <View className="ml-4">
+          <Text className="text-xl font-bold text-foreground">附近活動</Text>
+          <Text className="text-xs text-muted">
+            共 {events.length} 個活動
+          </Text>
         </View>
+      </View>
 
-        {/* Radius Filter */}
-        <View className="px-6 pb-4">
-          <Text className="text-sm font-bold text-foreground mb-3">搜尋範圍</Text>
-          <View className="flex-row gap-2">
-            {[10, 25, 50, 100].map((radius) => (
-              <TouchableOpacity
-                key={radius}
-                onPress={() => handleRadiusChange(radius)}
-                className={`flex-1 py-2 rounded-lg items-center border ${
-                  radiusKm === radius
-                    ? "bg-primary border-primary"
-                    : "bg-surface border-border"
-                }`}
-              >
-                <Text
-                  className={`text-xs font-semibold ${
-                    radiusKm === radius ? "text-white" : "text-foreground"
-                  }`}
-                >
-                  {radius} km
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </View>
-
-        {/* Events List */}
-        {filteredEvents.length > 0 ? (
-          <View className="px-6">
-            <Text className="text-sm text-muted mb-3">
-              找到 {filteredEvents.length} 個活動
-            </Text>
-            <FlatList
-              data={filteredEvents}
-              renderItem={renderEventCard}
-              keyExtractor={(item) => item.id.toString()}
-              scrollEnabled={false}
-            />
-          </View>
-        ) : (
-          <View className="px-6 py-12 items-center">
-            <Text className="text-4xl mb-3">🔍</Text>
-            <Text className="text-base font-bold text-foreground mb-1">
-              {userLocation ? "附近沒有活動" : "未啟用位置服務"}
+      {/* Events List */}
+      <FlatList
+        data={events}
+        renderItem={renderEventCard}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
+        ListEmptyComponent={
+          <View className="items-center py-16">
+            <Text className="text-5xl mb-3">🎵</Text>
+            <Text className="text-lg font-bold text-foreground mb-2">
+              目前沒有活動
             </Text>
             <Text className="text-sm text-muted text-center">
-              {userLocation
-                ? `在 ${radiusKm} km 範圍內沒有找到活動,請嘗試擴大搜尋範圍`
-                : "請在設定中啟用位置服務以查看附近活動"}
+              請稍後再回來看看
             </Text>
           </View>
-        )}
-      </ScrollView>
+        }
+      />
     </ScreenContainer>
   );
 }

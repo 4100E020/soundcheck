@@ -7,10 +7,11 @@ import {
   TextInput,
   Platform,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
-import { mockEvents } from "@/lib/mock-data";
+import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
 import * as Haptics from "expo-haptics";
 
@@ -85,7 +86,13 @@ export default function CreateCrewScreen() {
   const [maxMembers, setMaxMembers] = useState("4");
   const [templateFields, setTemplateFields] = useState<Record<string, string>>({});
 
-  const event = mockEvents.find((e) => e.id === Number(eventId));
+  // Fetch real event data from API
+  const { data: event, isLoading } = trpc.events.getRealById.useQuery(
+    { id: eventId || "" },
+    { enabled: !!eventId }
+  );
+
+  const eventName = event?.title || "音樂活動";
   const selectedTemplate = CREW_TEMPLATES.find((t) => t.type === selectedType);
 
   const handleSelectType = (type: CrewType) => {
@@ -119,18 +126,35 @@ export default function CreateCrewScreen() {
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     }
-    // In real app, this would call the API
     if (Platform.OS === "web") {
       alert("揪團已發起！");
+      router.back();
     } else {
       Alert.alert("成功", "揪團已發起！", [{ text: "確定", onPress: () => router.back() }]);
     }
   };
 
-  if (!event) {
+  if (isLoading) {
     return (
-      <ScreenContainer className="p-6">
-        <Text className="text-foreground">活動不存在</Text>
+      <ScreenContainer className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text className="text-muted mt-4">載入活動資料...</Text>
+      </ScreenContainer>
+    );
+  }
+
+  if (!event && !isLoading) {
+    return (
+      <ScreenContainer className="flex-1 items-center justify-center px-6">
+        <Text className="text-5xl mb-4">😢</Text>
+        <Text className="text-xl font-bold text-foreground mb-2">活動不存在</Text>
+        <Text className="text-muted text-center mb-6">找不到此活動，可能已被移除</Text>
+        <TouchableOpacity
+          className="bg-primary px-6 py-3 rounded-full"
+          onPress={() => router.back()}
+        >
+          <Text className="text-white font-bold">返回</Text>
+        </TouchableOpacity>
       </ScreenContainer>
     );
   }
@@ -174,7 +198,7 @@ export default function CreateCrewScreen() {
           <View className="px-6 gap-4">
             <Text className="text-lg font-bold text-foreground">選擇揪團類型</Text>
             <Text className="text-sm text-muted mb-2">
-              為「{event.name}」選擇一個揪團類型
+              為「{eventName}」選擇一個揪團類型
             </Text>
 
             {CREW_TEMPLATES.map((template) => (
@@ -344,7 +368,7 @@ export default function CreateCrewScreen() {
               {/* Event */}
               <View>
                 <Text className="text-xs text-muted">活動</Text>
-                <Text className="text-sm text-foreground mt-1">{event?.name}</Text>
+                <Text className="text-sm text-foreground mt-1">{eventName}</Text>
               </View>
             </View>
 

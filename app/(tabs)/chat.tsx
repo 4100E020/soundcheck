@@ -58,8 +58,8 @@ export default function ChatScreen() {
               {item.name}
             </Text>
             {item.type === "crew" && (
-              <View className="bg-secondary/10 px-2 py-0.5 rounded">
-                <Text className="text-xs font-semibold text-secondary">群組</Text>
+              <View className="bg-primary/10 px-2 py-0.5 rounded">
+                <Text className="text-xs font-semibold text-primary">群組</Text>
               </View>
             )}
           </View>

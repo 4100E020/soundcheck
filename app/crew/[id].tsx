@@ -10,12 +10,15 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
-import { mockCrews, mockEvents, getCrewTypeInfo } from "@/lib/mock-data";
+import { mockCrews, getCrewTypeInfo } from "@/lib/mock-data";
+import { trpc } from "@/lib/trpc";
+import { getEventCoverImage } from "@/lib/event-image-utils";
 import * as Haptics from "expo-haptics";
 
 /**
  * 揪團詳情頁面
  * 顯示揪團資訊、成員列表、申請加入
+ * 揪團資料暫用 mock，活動資訊使用真實 API
  */
 export default function CrewDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -23,12 +26,36 @@ export default function CrewDetailScreen() {
   const [hasApplied, setHasApplied] = useState(false);
 
   const crew = mockCrews.find((c) => c.id === Number(id));
-  const event = crew ? mockEvents.find((e) => e.id === crew.eventId) : null;
 
-  if (!crew || !event) {
+  // Fetch real events to find the associated event
+  const { data: realEvents } = trpc.events.listReal.useQuery({
+    limit: 50,
+    offset: 0,
+  });
+
+  // Try to find a matching real event (use first event as fallback for demo)
+  const realEvent = realEvents?.[0];
+  const eventName = realEvent?.title || "音樂活動";
+  const eventVenue = realEvent?.venue?.name || "活動場地";
+  const eventCover = realEvent
+    ? getEventCoverImage(realEvent.id, realEvent.category, realEvent.images)
+    : "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=400&q=80";
+  const eventId = realEvent?.id || "";
+
+  if (!crew) {
     return (
-      <ScreenContainer className="p-6">
-        <Text className="text-foreground">揪團不存在</Text>
+      <ScreenContainer className="flex-1 items-center justify-center p-6">
+        <Text className="text-5xl mb-4">🎪</Text>
+        <Text className="text-xl font-bold text-foreground mb-2">揪團不存在</Text>
+        <Text className="text-muted mb-6 text-center">
+          找不到此揪團，可能已被移除或連結無效
+        </Text>
+        <TouchableOpacity
+          className="bg-primary px-6 py-3 rounded-full"
+          onPress={() => router.back()}
+        >
+          <Text className="text-white font-bold">返回</Text>
+        </TouchableOpacity>
       </ScreenContainer>
     );
   }
@@ -106,24 +133,36 @@ export default function CrewDetailScreen() {
             {/* Description */}
             <Text className="text-sm text-muted leading-relaxed">{crew.description}</Text>
 
-            {/* Event Link */}
-            <TouchableOpacity
-              onPress={() => router.push(`/event/${event.id}`)}
-              className="bg-background rounded-xl p-3 flex-row items-center gap-3 border border-border"
-            >
-              <Image
-                source={{ uri: event.coverImage }}
-                className="w-12 h-12 rounded-lg"
-                resizeMode="cover"
-              />
-              <View className="flex-1">
-                <Text className="text-sm font-bold text-foreground" numberOfLines={1}>
-                  {event.name}
-                </Text>
-                <Text className="text-xs text-muted">{event.venue}</Text>
+            {/* Event Link - use real event data */}
+            {eventId ? (
+              <TouchableOpacity
+                onPress={() => router.push(`/event/${eventId}`)}
+                className="bg-background rounded-xl p-3 flex-row items-center gap-3 border border-border"
+              >
+                <Image
+                  source={{ uri: eventCover }}
+                  className="w-12 h-12 rounded-lg"
+                  resizeMode="cover"
+                />
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-foreground" numberOfLines={1}>
+                    {eventName}
+                  </Text>
+                  <Text className="text-xs text-muted">{eventVenue}</Text>
+                </View>
+                <Text className="text-muted">›</Text>
+              </TouchableOpacity>
+            ) : (
+              <View className="bg-background rounded-xl p-3 flex-row items-center gap-3 border border-border">
+                <View className="w-12 h-12 rounded-lg bg-surface items-center justify-center">
+                  <Text className="text-xl">🎵</Text>
+                </View>
+                <View className="flex-1">
+                  <Text className="text-sm font-bold text-foreground">音樂活動</Text>
+                  <Text className="text-xs text-muted">活動資料載入中...</Text>
+                </View>
               </View>
-              <Text className="text-muted">›</Text>
-            </TouchableOpacity>
+            )}
 
             {/* Progress */}
             <View>

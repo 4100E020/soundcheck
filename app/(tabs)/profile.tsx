@@ -3,17 +3,26 @@ import { ScrollView, Text, View, TouchableOpacity, Image, Platform, Alert } from
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useAuthContext } from "@/lib/auth-context";
-import { mockUsers, mockEvents } from "@/lib/mock-data";
+import { trpc } from "@/lib/trpc";
+import { mockUsers } from "@/lib/mock-data";
+import { getEventCoverImage, getCategoryLabel } from "@/lib/event-image-utils";
+import { formatEventDate } from "@/lib/mock-data";
 import * as Haptics from "expo-haptics";
 
 /**
  * 個人資料頁面
- * 顯示音樂基因圖、票夾、Spotify 連結、設定
+ * 顯示音樂基因圖、票夾（使用真實 API 活動）、Spotify 連結、設定
  */
 export default function ProfileScreen() {
   const router = useRouter();
   const { user, isAuthenticated, logout } = useAuthContext();
   const [spotifyConnected, setSpotifyConnected] = useState(false);
+
+  // Fetch real events for ticket wallet
+  const { data: realEvents } = trpc.events.listReal.useQuery({
+    limit: 10,
+    offset: 0,
+  });
 
   // Use auth user data if available, otherwise use mock
   const currentUser = isAuthenticated && user ? {
@@ -29,8 +38,15 @@ export default function ProfileScreen() {
     isVVIP: false,
   };
 
-  // Mock verified events
-  const verifiedEvents = mockEvents.slice(0, 2);
+  // Use first 2 real events as "verified" tickets for demo
+  const verifiedEvents = (realEvents || []).slice(0, 2).map((e) => ({
+    id: e.id,
+    name: e.title,
+    coverImage: getEventCoverImage(e.id, e.category, e.images),
+    category: e.category,
+    startDate: new Date(e.startDate),
+    venue: e.venue.name,
+  }));
 
   // Music DNA data
   const musicDNA = [
@@ -45,12 +61,31 @@ export default function ProfileScreen() {
     if (Platform.OS !== "web") {
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     }
-    // Simulate Spotify connection
     setSpotifyConnected(true);
     if (Platform.OS === "web") {
       alert("Spotify 連結成功！音樂基因圖已更新");
     } else {
       Alert.alert("成功", "Spotify 連結成功！音樂基因圖已更新");
+    }
+  };
+
+  const handleLogout = () => {
+    if (Platform.OS === "web") {
+      if (confirm("確定要登出嗎？")) {
+        logout().then(() => router.replace("/auth/login" as any));
+      }
+    } else {
+      Alert.alert("登出", "確定要登出嗎？", [
+        { text: "取消", style: "cancel" },
+        {
+          text: "登出",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+            router.replace("/auth/login" as any);
+          },
+        },
+      ]);
     }
   };
 
@@ -173,10 +208,15 @@ export default function ProfileScreen() {
                   />
                   <View className="p-4">
                     <View className="flex-row items-center justify-between">
-                      <Text className="text-base font-bold text-foreground flex-1" numberOfLines={1}>
-                        {event.name}
-                      </Text>
-                      <View className="bg-success/10 px-3 py-1 rounded-full ml-2">
+                      <View className="flex-1 mr-2">
+                        <Text className="text-base font-bold text-foreground" numberOfLines={1}>
+                          {event.name}
+                        </Text>
+                        <Text className="text-xs text-muted mt-1">
+                          📍 {event.venue} · 📅 {formatEventDate(event.startDate)}
+                        </Text>
+                      </View>
+                      <View className="bg-success/10 px-3 py-1 rounded-full">
                         <Text className="text-xs font-semibold text-success">✅ 已驗證</Text>
                       </View>
                     </View>
@@ -184,9 +224,9 @@ export default function ProfileScreen() {
                 </TouchableOpacity>
               ))}
 
-              {/* Add Ticket Button */}
+              {/* Add Ticket Button - navigate to events list to pick an event */}
               <TouchableOpacity
-                onPress={() => router.push("/ticket-verify/1")}
+                onPress={() => router.push("/(tabs)/events" as any)}
                 className="bg-surface rounded-2xl p-4 border border-dashed border-border items-center active:opacity-80"
               >
                 <Text className="text-base text-muted">+ 驗證新票根</Text>
@@ -200,10 +240,10 @@ export default function ProfileScreen() {
                 上傳票根驗證解鎖 VVIP 功能
               </Text>
               <TouchableOpacity
-                onPress={() => router.push("/ticket-verify/1")}
+                onPress={() => router.push("/(tabs)/events" as any)}
                 className="bg-primary px-6 py-3 rounded-full active:opacity-80"
               >
-                <Text className="text-white font-bold">上傳票根</Text>
+                <Text className="text-white font-bold">去看活動</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -241,21 +281,11 @@ export default function ProfileScreen() {
         <View className="px-6 pb-6">
           {isAuthenticated ? (
             <TouchableOpacity
-              onPress={async () => {
+              onPress={() => {
                 if (Platform.OS !== "web") {
                   Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
                 }
-                Alert.alert("登出", "確定要登出嗎？", [
-                  { text: "取消", style: "cancel" },
-                  {
-                    text: "登出",
-                    style: "destructive",
-                    onPress: async () => {
-                      await logout();
-                      router.replace("/auth/login" as any);
-                    },
-                  },
-                ]);
+                handleLogout();
               }}
               className="bg-error/10 py-4 rounded-2xl items-center border border-error/30"
             >
@@ -264,13 +294,13 @@ export default function ProfileScreen() {
           ) : (
             <View className="gap-3">
               <TouchableOpacity
-onPress={() => router.push("/auth/login" as any)}
+                onPress={() => router.push("/auth/login" as any)}
                 className="bg-primary py-4 rounded-2xl items-center"
               >
                 <Text className="text-white font-bold text-base">登入</Text>
               </TouchableOpacity>
               <TouchableOpacity
-onPress={() => router.push("/auth/signup" as any)}
+                onPress={() => router.push("/auth/signup" as any)}
                 className="bg-surface py-4 rounded-2xl items-center border border-border"
               >
                 <Text className="text-foreground font-bold text-base">建立新帳號</Text>

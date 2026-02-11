@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import {
   ScrollView,
   Text,
@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
-import { mockEvents } from "@/lib/mock-data";
+import { trpc } from "@/lib/trpc";
 import { useColors } from "@/hooks/use-colors";
+import { getEventCoverImage } from "@/lib/event-image-utils";
 import * as Haptics from "expo-haptics";
 
 type VerifyStatus = "idle" | "uploading" | "verifying" | "success" | "failed";
@@ -21,6 +22,7 @@ type VerifyStatus = "idle" | "uploading" | "verifying" | "success" | "failed";
 /**
  * 票根驗證頁面
  * 上傳票根照片 → 驗證中 → 成功/失敗
+ * 支援真實 API 活動 (UUID ID) 和模擬活動 (number ID)
  */
 export default function TicketVerifyScreen() {
   const { eventId } = useLocalSearchParams<{ eventId: string }>();
@@ -36,7 +38,18 @@ export default function TicketVerifyScreen() {
   const successOpacity = useRef(new RNAnimated.Value(0)).current;
   const failShake = useRef(new RNAnimated.Value(0)).current;
 
-  const event = mockEvents.find((e) => e.id === Number(eventId));
+  // Try to fetch real event data
+  const { data: realEvent, isLoading } = trpc.events.getRealById.useQuery(
+    { id: eventId || "" },
+    { enabled: !!eventId }
+  );
+
+  // Derive event info
+  const eventName = realEvent?.title || "音樂活動";
+  const eventVenue = realEvent?.venue?.name || "活動場地";
+  const eventCover = realEvent
+    ? getEventCoverImage(realEvent.id, realEvent.category, realEvent.images)
+    : "https://images.unsplash.com/photo-1540039155733-5bb30b53aa14?w=400&q=80";
 
   const handleSelectImage = () => {
     // Simulate image selection
@@ -69,7 +82,6 @@ export default function TicketVerifyScreen() {
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
-      // Success animation
       RNAnimated.parallel([
         RNAnimated.spring(successScale, {
           toValue: 1,
@@ -88,7 +100,6 @@ export default function TicketVerifyScreen() {
       if (Platform.OS !== "web") {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       }
-      // Shake animation
       RNAnimated.sequence([
         RNAnimated.timing(failShake, { toValue: 10, duration: 50, useNativeDriver: true }),
         RNAnimated.timing(failShake, { toValue: -10, duration: 50, useNativeDriver: true }),
@@ -108,10 +119,11 @@ export default function TicketVerifyScreen() {
     successOpacity.setValue(0);
   };
 
-  if (!event) {
+  if (isLoading) {
     return (
-      <ScreenContainer className="p-6">
-        <Text className="text-foreground">活動不存在</Text>
+      <ScreenContainer className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" color={colors.primary} />
+        <Text className="text-muted mt-4">載入活動資料...</Text>
       </ScreenContainer>
     );
   }
@@ -131,15 +143,15 @@ export default function TicketVerifyScreen() {
         <View className="px-6 pb-4">
           <View className="bg-surface rounded-2xl p-4 border border-border flex-row items-center gap-4">
             <Image
-              source={{ uri: event.coverImage }}
+              source={{ uri: eventCover }}
               className="w-16 h-16 rounded-xl"
               resizeMode="cover"
             />
             <View className="flex-1">
               <Text className="text-base font-bold text-foreground" numberOfLines={1}>
-                {event.name}
+                {eventName}
               </Text>
-              <Text className="text-sm text-muted">{event.venue}</Text>
+              <Text className="text-sm text-muted">{eventVenue}</Text>
             </View>
           </View>
         </View>
@@ -287,7 +299,7 @@ export default function TicketVerifyScreen() {
                 </View>
                 <View className="flex-row items-center gap-3">
                   <Text className="text-lg">✍️</Text>
-                  <Text className="text-sm text-foreground">揪團發文與加入</Text>
+                  <Text className="text-sm text-foreground">活動留言板發文</Text>
                 </View>
                 <View className="flex-row items-center gap-3">
                   <Text className="text-lg">🎵</Text>

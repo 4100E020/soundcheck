@@ -215,7 +215,7 @@ export default function DiscoverScreen() {
                     {/* Match Score */}
                     <View className="bg-primary/10 px-4 py-2 rounded-xl self-start">
                       <Text className="text-sm font-bold text-primary">
-                        ❤️ {currentUser.matchScore}% 匹配
+                        {currentUser.matchScore}% 匹配
                       </Text>
                     </View>
 
@@ -231,8 +231,8 @@ export default function DiscoverScreen() {
                       <Text className="text-xs text-muted mb-2">喜歡的藝人</Text>
                       <View className="flex-row flex-wrap gap-2">
                         {currentUser.topArtists.map((artist, index) => (
-                          <View key={index} className="bg-secondary/10 px-3 py-1 rounded-full">
-                            <Text className="text-xs font-semibold text-secondary">{artist}</Text>
+                          <View key={index} className="bg-primary/10 px-3 py-1 rounded-full">
+                            <Text className="text-xs font-semibold text-primary">{artist}</Text>
                           </View>
                         ))}
                       </View>
@@ -261,7 +261,7 @@ export default function DiscoverScreen() {
                 {/* Song Icebreaker */}
                 <TouchableOpacity
                   onPress={handleSongIcebreaker}
-                  className="bg-secondary/10 rounded-full p-4 border-2 border-secondary/30 active:opacity-70"
+                  className="bg-primary/10 rounded-full p-4 border-2 border-primary/30 active:opacity-70"
                 >
                   <Text className="text-2xl">🎵</Text>
                 </TouchableOpacity>
@@ -289,10 +289,14 @@ export default function DiscoverScreen() {
                 </Text>
                 {!canSwipe && (
                   <TouchableOpacity
-                    onPress={() => router.push("/ticket-verify/1")}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/(tabs)/events",
+                      } as any);
+                    }}
                     className="bg-primary px-6 py-3 rounded-full mt-2"
                   >
-                    <Text className="text-white font-bold">去驗證票根</Text>
+                    <Text className="text-white font-bold">去看活動</Text>
                   </TouchableOpacity>
                 )}
               </View>
@@ -319,9 +323,17 @@ export default function DiscoverScreen() {
             <Text className="text-base text-white/80">
               你和 {currentUser?.nickname} 互相喜歡
             </Text>
-            <View className="bg-white/20 rounded-full px-6 py-3 mt-4">
+            <TouchableOpacity
+              onPress={() => {
+                setShowMatchAnimation(false);
+                matchScale.setValue(0);
+                matchOpacity.setValue(0);
+                router.push("/(tabs)/chat" as any);
+              }}
+              className="bg-white/20 rounded-full px-6 py-3 mt-4"
+            >
               <Text className="text-white font-semibold">開始聊天吧</Text>
-            </View>
+            </TouchableOpacity>
           </RNAnimated.View>
         </View>
       )}
