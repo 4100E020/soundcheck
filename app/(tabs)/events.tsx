@@ -28,9 +28,10 @@ export default function EventsScreen() {
   const filteredAndSortedEvents = useMemo(() => {
     if (!realEvents) return [];
     
-    // Convert real events to mock event format for compatibility
-    let events: MockEvent[] = realEvents.map((e, index) => ({
-      id: index + 1, // Use index as numeric ID for compatibility
+    // Convert real events to display format, keeping real ID for navigation
+    let events: (MockEvent & { realId: string })[] = realEvents.map((e, index) => ({
+      id: index + 1, // Numeric ID for sorting compatibility
+      realId: e.id, // Real UUID for API calls
       name: e.title,
       description: e.description || '',
       eventType: e.category === 'concert' ? 'concert' : e.category === 'festival' ? 'festival' : 'livehouse',
@@ -198,10 +199,10 @@ export default function EventsScreen() {
 
             return (
               <TouchableOpacity
-                key={event.id}
+                key={event.realId || event.id}
                 className="bg-surface rounded-2xl overflow-hidden border border-border active:opacity-80"
                 onPress={() => {
-                  router.push(`/event/${event.id}`);
+                  router.push(`/event/${event.realId}`);
                 }}
               >
                 {/* Cover */}

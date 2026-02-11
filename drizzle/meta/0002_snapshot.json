@@ -1,8 +1,8 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "755cfec3-d3bd-4234-96f9-e98c5a77eaae",
-  "prevId": "e2cca72d-3983-468b-bb22-b31964c46a05",
+  "id": "ee20965e-a78b-424c-aa6d-b62ecc8fb637",
+  "prevId": "6faddc82-20aa-4357-b9f1-b9c0c4ce4dbd",
   "tables": {
     "chat_room_members": {
       "name": "chat_room_members",
@@ -964,13 +964,6 @@
             "category"
           ],
           "isUnique": false
-        },
-        "city_idx": {
-          "name": "city_idx",
-          "columns": [
-            "venue"
-          ],
-          "isUnique": false
         }
       },
       "foreignKeys": {},
@@ -1297,6 +1290,13 @@
         "email": {
           "name": "email",
           "type": "varchar(320)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "passwordHash": {
+          "name": "passwordHash",
+          "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false

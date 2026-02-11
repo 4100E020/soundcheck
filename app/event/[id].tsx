@@ -7,16 +7,18 @@ import {
   Image,
   ImageBackground,
   Platform,
+  Linking,
+  ActivityIndicator,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
+import { trpc } from "@/lib/trpc";
 import {
-  mockEvents,
-  mockUsers,
-  mockCrews,
   getDaysUntil,
   formatEventDate,
   getCrewTypeInfo,
+  mockUsers,
+  mockCrews,
 } from "@/lib/mock-data";
 import * as Haptics from "expo-haptics";
 
@@ -25,6 +27,7 @@ type TabType = "info" | "people" | "crew";
 /**
  * 活動詳情頁面
  * 包含 Header + 3 個分頁 (情報/找人/揪團)
+ * 使用真實 API 資料 (standardized_events)
  */
 export default function EventDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -32,24 +35,55 @@ export default function EventDetailScreen() {
   const [activeTab, setActiveTab] = useState<TabType>("info");
   const [peopleFilter, setPeopleFilter] = useState<"all" | "vvip">("all");
 
-  // 找到對應的活動
-  const event = mockEvents.find((e) => e.id === Number(id));
+  // 從 API 取得真實活動資料
+  const { data: event, isLoading, error } = trpc.events.getRealById.useQuery(
+    { id: id || "" },
+    { enabled: !!id }
+  );
 
-  if (!event) {
+  if (isLoading) {
     return (
-      <ScreenContainer className="p-6">
-        <Text className="text-foreground">活動不存在</Text>
+      <ScreenContainer className="flex-1 items-center justify-center">
+        <ActivityIndicator size="large" />
+        <Text className="text-muted mt-4">載入活動資料中...</Text>
       </ScreenContainer>
     );
   }
 
-  const daysUntil = getDaysUntil(event.startDate);
+  if (error || !event) {
+    return (
+      <ScreenContainer className="flex-1 items-center justify-center p-6">
+        <Text className="text-4xl mb-4">😢</Text>
+        <Text className="text-xl font-bold text-foreground mb-2">活動不存在</Text>
+        <Text className="text-muted mb-6 text-center">
+          {error?.message || "找不到此活動，可能已被移除或連結無效"}
+        </Text>
+        <TouchableOpacity
+          className="bg-primary px-6 py-3 rounded-full"
+          onPress={() => router.back()}
+        >
+          <Text className="text-white font-bold">返回活動列表</Text>
+        </TouchableOpacity>
+      </ScreenContainer>
+    );
+  }
+
+  // 解析活動資料
+  const coverImage = event.images?.[0]?.url || "https://images.unsplash.com/photo-1459749411175-04bf5292ceea?w=800";
+  const startDate = new Date(event.startDate);
+  const endDate = new Date(event.endDate);
+  const daysUntil = getDaysUntil(startDate);
   const isUpcoming = daysUntil > 0;
+  const lineup = event.lineup || [];
+  const genres = event.genres || [];
+  const tags = event.tags || [];
+  const venue = event.venue;
+  const ticketing = event.ticketing;
 
-  // 篩選該活動的揪團
-  const eventCrews = mockCrews.filter((crew) => crew.eventId === event.id);
+  // 篩選揪團（暫用模擬資料，之後接 API）
+  const eventCrews = mockCrews.filter((crew) => crew.eventId === 1); // placeholder
 
-  // 篩選用戶
+  // 篩選用戶（暫用模擬資料）
   const filteredUsers = peopleFilter === "vvip"
     ? mockUsers.filter((u) => u.isVVIP)
     : mockUsers;
@@ -61,12 +95,27 @@ export default function EventDetailScreen() {
     }
   };
 
+  const getCategoryLabel = (category: string): string => {
+    const labels: Record<string, string> = {
+      concert: "演唱會",
+      festival: "音樂祭",
+      club_event: "夜店活動",
+      live_music: "現場演出",
+      dj_set: "DJ Set",
+      workshop: "工作坊",
+      conference: "研討會",
+      party: "派對",
+      other: "其他",
+    };
+    return labels[category] || "音樂活動";
+  };
+
   return (
     <ScreenContainer edges={["left", "right"]}>
       <ScrollView className="flex-1">
         {/* Header 區域 */}
         <ImageBackground
-          source={{ uri: event.coverImage }}
+          source={{ uri: coverImage }}
           className="w-full"
           blurRadius={20}
         >
@@ -79,17 +128,36 @@ export default function EventDetailScreen() {
               <Text className="text-white text-2xl">←</Text>
             </TouchableOpacity>
 
+            {/* 活動類型標籤 */}
+            <View className="flex-row gap-2 mb-3">
+              <View className="bg-primary/30 px-3 py-1 rounded-full">
+                <Text className="text-xs font-semibold text-white">
+                  {getCategoryLabel(event.category)}
+                </Text>
+              </View>
+              <View className="bg-white/20 px-3 py-1 rounded-full">
+                <Text className="text-xs font-semibold text-white">
+                  {event.source.toUpperCase()}
+                </Text>
+              </View>
+            </View>
+
             {/* 活動資訊 */}
             <Text className="text-2xl font-bold text-white mb-2">
-              {event.name}
+              {event.title}
             </Text>
             <Text className="text-sm text-white/80 mb-1">
-              📅 {formatEventDate(event.startDate)}
-              {event.endDate && ` - ${formatEventDate(event.endDate)}`}
+              📅 {formatEventDate(startDate)}
+              {endDate && startDate.getTime() !== endDate.getTime() && ` - ${formatEventDate(endDate)}`}
             </Text>
-            <Text className="text-sm text-white/80 mb-4">
-              📍 {event.venue}
+            <Text className="text-sm text-white/80 mb-1">
+              📍 {venue.name}
             </Text>
+            {venue.address && (
+              <Text className="text-xs text-white/60 mb-4">
+                {venue.address}
+              </Text>
+            )}
 
             {/* 倒數計時 */}
             {isUpcoming && (
@@ -100,20 +168,55 @@ export default function EventDetailScreen() {
               </View>
             )}
 
-            {/* CTA 按鈕 - 導航到票根驗證 */}
-            <TouchableOpacity
-              className="bg-primary px-6 py-3 rounded-full active:opacity-80"
-              onPress={() => {
-                if (Platform.OS !== "web") {
-                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-                }
-                router.push(`/ticket-verify/${event.id}`);
-              }}
-            >
-              <Text className="text-white font-bold text-center">
-                📷 上傳票根解鎖 VVIP
-              </Text>
-            </TouchableOpacity>
+            {/* 票價資訊 */}
+            <View className="flex-row gap-3 mb-4">
+              {ticketing.isFree ? (
+                <View className="bg-success/20 px-4 py-2 rounded-full">
+                  <Text className="text-sm font-semibold text-success">免費入場</Text>
+                </View>
+              ) : (
+                <View className="bg-white/20 px-4 py-2 rounded-full">
+                  <Text className="text-sm font-semibold text-white">
+                    💰 NT$ {ticketing.priceRange.min}
+                    {ticketing.priceRange.max > ticketing.priceRange.min
+                      ? ` ~ ${ticketing.priceRange.max}`
+                      : ""}
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* CTA 按鈕 */}
+            <View className="flex-row gap-3">
+              {ticketing.ticketUrl && (
+                <TouchableOpacity
+                  className="flex-1 bg-primary px-6 py-3 rounded-full active:opacity-80"
+                  onPress={() => {
+                    if (Platform.OS !== "web") {
+                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                    }
+                    Linking.openURL(ticketing.ticketUrl!);
+                  }}
+                >
+                  <Text className="text-white font-bold text-center">
+                    🎫 前往購票
+                  </Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                className="flex-1 bg-white/20 px-6 py-3 rounded-full active:opacity-80"
+                onPress={() => {
+                  if (Platform.OS !== "web") {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  }
+                  Linking.openURL(event.sourceUrl);
+                }}
+              >
+                <Text className="text-white font-bold text-center">
+                  🔗 活動頁面
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </ImageBackground>
 
@@ -157,91 +260,186 @@ export default function EventDetailScreen() {
           {activeTab === "info" && (
             <View className="gap-6">
               {/* 陣容 */}
-              <View>
-                <Text className="text-xl font-bold text-foreground mb-3">
-                  陣容 Lineup
-                </Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {event.lineup.map((artist, index) => (
-                    <View
-                      key={index}
-                      className="bg-secondary/10 px-4 py-2 rounded-full"
-                    >
-                      <Text className="text-sm font-semibold text-secondary">
-                        {artist}
-                      </Text>
-                    </View>
-                  ))}
-                </View>
-              </View>
-
-              {/* 活動熱度 */}
-              <View>
-                <Text className="text-xl font-bold text-foreground mb-3">
-                  活動熱度
-                </Text>
-                <View className="bg-surface rounded-2xl p-4 border border-border gap-3">
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-muted">參加人數</Text>
-                    <Text className="text-foreground font-bold">
-                      {event.participantCount.toLocaleString()} 人
-                    </Text>
-                  </View>
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-muted">已驗證 VVIP</Text>
-                    <Text className="text-success font-bold">
-                      {event.vvipCount.toLocaleString()} 人
-                    </Text>
-                  </View>
-                  {/* Heat Bar */}
-                  <View>
-                    <View className="flex-row items-center justify-between mb-1">
-                      <Text className="text-xs text-muted">VVIP 佔比</Text>
-                      <Text className="text-xs text-primary font-semibold">
-                        {Math.round((event.vvipCount / event.participantCount) * 100)}%
-                      </Text>
-                    </View>
-                    <View className="h-2 bg-border rounded-full overflow-hidden">
+              {lineup.length > 0 && (
+                <View>
+                  <Text className="text-xl font-bold text-foreground mb-3">
+                    陣容 Lineup
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {lineup.map((artist, index) => (
                       <View
-                        className="h-full bg-primary rounded-full"
-                        style={{ width: `${(event.vvipCount / event.participantCount) * 100}%` }}
-                      />
-                    </View>
+                        key={index}
+                        className="bg-primary/10 px-4 py-2 rounded-full"
+                      >
+                        <Text className="text-sm font-semibold text-primary">
+                          {artist.name}
+                          {artist.role ? ` (${artist.role})` : ""}
+                        </Text>
+                      </View>
+                    ))}
                   </View>
                 </View>
-              </View>
+              )}
+
+              {/* 音樂類型 */}
+              {genres.length > 0 && (
+                <View>
+                  <Text className="text-xl font-bold text-foreground mb-3">
+                    音樂類型
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {genres.map((genre, index) => (
+                      <View
+                        key={index}
+                        className="bg-surface px-4 py-2 rounded-full border border-border"
+                      >
+                        <Text className="text-sm text-foreground">
+                          🎵 {genre}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
+
+              {/* 標籤 */}
+              {tags.length > 0 && (
+                <View>
+                  <Text className="text-xl font-bold text-foreground mb-3">
+                    標籤
+                  </Text>
+                  <View className="flex-row flex-wrap gap-2">
+                    {tags.map((tag, index) => (
+                      <View
+                        key={index}
+                        className="bg-muted/10 px-3 py-1 rounded-full"
+                      >
+                        <Text className="text-xs text-muted">#{tag}</Text>
+                      </View>
+                    ))}
+                  </View>
+                </View>
+              )}
 
               {/* 活動說明 */}
+              {event.summary && (
+                <View>
+                  <Text className="text-xl font-bold text-foreground mb-3">
+                    活動摘要
+                  </Text>
+                  <Text className="text-muted leading-relaxed">
+                    {event.summary}
+                  </Text>
+                </View>
+              )}
+
               {event.description && (
                 <View>
                   <Text className="text-xl font-bold text-foreground mb-3">
                     活動說明
                   </Text>
-                  <Text className="text-muted leading-relaxed">
+                  <Text className="text-muted leading-relaxed" numberOfLines={20}>
                     {event.description}
                   </Text>
                 </View>
               )}
 
-              {/* 官方資訊 */}
+              {/* 主辦方 */}
               <View>
                 <Text className="text-xl font-bold text-foreground mb-3">
-                  官方資訊
+                  主辦方
                 </Text>
-                <View className="gap-2">
-                  {event.ticketUrl && (
-                    <TouchableOpacity className="bg-primary/10 px-4 py-3 rounded-xl active:opacity-80">
-                      <Text className="text-primary font-semibold">
-                        🎫 購票連結
-                      </Text>
-                    </TouchableOpacity>
+                <View className="bg-surface rounded-2xl p-4 border border-border">
+                  <Text className="text-base font-semibold text-foreground">
+                    {event.organizer.name}
+                  </Text>
+                </View>
+              </View>
+
+              {/* 場地資訊 */}
+              <View>
+                <Text className="text-xl font-bold text-foreground mb-3">
+                  場地資訊
+                </Text>
+                <View className="bg-surface rounded-2xl p-4 border border-border gap-2">
+                  <View className="flex-row items-center gap-2">
+                    <Text className="text-base">📍</Text>
+                    <Text className="text-base font-semibold text-foreground">
+                      {venue.name}
+                    </Text>
+                  </View>
+                  {venue.address && (
+                    <Text className="text-sm text-muted ml-7">
+                      {venue.address}
+                    </Text>
                   )}
-                  <TouchableOpacity className="bg-surface px-4 py-3 rounded-xl border border-border active:opacity-80">
-                    <Text className="text-foreground font-semibold">
-                      🗺️ 場地地圖 · {event.address}
+                  {venue.city && (
+                    <Text className="text-sm text-muted ml-7">
+                      {venue.city}{venue.district ? ` ${venue.district}` : ""}
+                    </Text>
+                  )}
+                  {venue.venueType && (
+                    <Text className="text-xs text-primary ml-7">
+                      {venue.venueType}
+                    </Text>
+                  )}
+                </View>
+              </View>
+
+              {/* 票務資訊 */}
+              <View>
+                <Text className="text-xl font-bold text-foreground mb-3">
+                  票務資訊
+                </Text>
+                <View className="bg-surface rounded-2xl p-4 border border-border gap-3">
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-muted">票務狀態</Text>
+                    <Text className="text-foreground font-bold">
+                      {ticketing.status === "available" ? "🟢 售票中" :
+                       ticketing.status === "sold_out" ? "🔴 已售完" :
+                       ticketing.status === "upcoming" ? "🟡 即將開賣" :
+                       ticketing.status}
+                    </Text>
+                  </View>
+                  <View className="flex-row items-center justify-between">
+                    <Text className="text-muted">票價</Text>
+                    <Text className="text-foreground font-bold">
+                      {ticketing.isFree ? "免費" :
+                        `NT$ ${ticketing.priceRange.min}${ticketing.priceRange.max > ticketing.priceRange.min ? ` ~ ${ticketing.priceRange.max}` : ""}`
+                      }
+                    </Text>
+                  </View>
+                  {ticketing.ticketPlatform && (
+                    <View className="flex-row items-center justify-between">
+                      <Text className="text-muted">售票平台</Text>
+                      <Text className="text-primary font-bold">
+                        {ticketing.ticketPlatform}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+              </View>
+
+              {/* 官方連結 */}
+              <View className="gap-2">
+                {ticketing.ticketUrl && (
+                  <TouchableOpacity
+                    className="bg-primary/10 px-4 py-3 rounded-xl active:opacity-80"
+                    onPress={() => Linking.openURL(ticketing.ticketUrl!)}
+                  >
+                    <Text className="text-primary font-semibold text-center">
+                      🎫 前往購票頁面
                     </Text>
                   </TouchableOpacity>
-                </View>
+                )}
+                <TouchableOpacity
+                  className="bg-surface px-4 py-3 rounded-xl border border-border active:opacity-80"
+                  onPress={() => Linking.openURL(event.sourceUrl)}
+                >
+                  <Text className="text-foreground font-semibold text-center">
+                    🔗 查看原始活動頁面
+                  </Text>
+                </TouchableOpacity>
               </View>
             </View>
           )}
@@ -277,7 +475,6 @@ export default function EventDetailScreen() {
                     className="bg-surface rounded-2xl p-4 border border-border active:opacity-80"
                     style={{ width: "48%" }}
                     onPress={() => {
-                      // Navigate to song picker for icebreaker
                       router.push({
                         pathname: "/song-picker",
                         params: { targetName: user.nickname },
@@ -341,7 +538,7 @@ export default function EventDetailScreen() {
                   }
                   router.push({
                     pathname: "/crew/create",
-                    params: { eventId: event.id.toString() },
+                    params: { eventId: event.id },
                   });
                 }}
               >

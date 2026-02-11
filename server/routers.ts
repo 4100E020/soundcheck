@@ -47,43 +47,43 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
+        if (!db) throw new Error("資料庫未連接");
         
         // 檢查 email 是否已存在
-        const existing = await db.query.users.findFirst({
-          where: eq(users.email, input.email),
-        });
+        const existing = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
         
-        if (existing) {
+        if (existing.length > 0) {
           throw new Error("此 email 已被註冊");
         }
         
         // Hash 密碼
         const passwordHash = await bcrypt.hash(input.password, 10);
         
-        // 建立用戶
-        const [user] = await db.insert(users).values({
+        // 建立用戶 - 使用實際的 users 表欄位
+        const openId = `email_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        const result = await db.insert(users).values({
+          openId,
           email: input.email,
           passwordHash,
-          displayName: input.displayName,
-          birthDate: input.birthDate ? new Date(input.birthDate) : null,
-          gender: input.gender || null,
+          name: input.displayName,
+          nickname: input.displayName,
+          loginMethod: "email",
+          gender: (input.gender === "prefer_not_to_say" ? "other" : input.gender) as "male" | "female" | "other" | undefined,
           bio: null,
-          avatarUrl: null,
-          location: input.location ? JSON.stringify(input.location) : null,
-          musicGenres: input.musicGenres || [],
+          avatar: null,
+          isVVIP: false,
+          dailySwipeCount: 0,
           spotifyConnected: false,
-          verifiedEvents: [],
-          vvipStatus: false,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        }).returning();
+        }).$returningId();
+        
+        const userId = result[0].id;
         
         return {
           user: {
-            id: user.id,
-            email: user.email,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
+            id: userId,
+            email: input.email,
+            displayName: input.displayName,
+            avatarUrl: null as string | null,
           },
         };
       }),
@@ -98,11 +98,11 @@ export const appRouter = router({
       )
       .mutation(async ({ input, ctx }) => {
         const db = await getDb();
+        if (!db) throw new Error("資料庫未連接");
         
         // 查找用戶
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, input.email),
-        });
+        const found = await db.select().from(users).where(eq(users.email, input.email)).limit(1);
+        const user = found[0];
         
         if (!user || !user.passwordHash) {
           throw new Error("帳號或密碼錯誤");
@@ -115,13 +115,16 @@ export const appRouter = router({
           throw new Error("帳號或密碼錯誤");
         }
         
+        // 更新最後登入時間
+        await db.update(users).set({ lastSignedIn: new Date() }).where(eq(users.id, user.id));
+        
         return {
           user: {
             id: user.id,
             email: user.email,
-            displayName: user.displayName,
-            avatarUrl: user.avatarUrl,
-            vvipStatus: user.vvipStatus,
+            displayName: user.nickname || user.name || "用戶",
+            avatarUrl: user.avatar,
+            isVVIP: user.isVVIP,
           },
         };
       }),
@@ -190,6 +193,47 @@ export const appRouter = router({
           .where(eq(standardizedEvents.id, input.id))
           .limit(1);
         return result[0] ?? null;
+      }),
+
+    // 觸發爬蟲 (手動觸發)
+    triggerScrape: publicProcedure
+      .input(
+        z.object({
+          sources: z.array(z.enum(["kktix", "indievox", "accupass"])).optional(),
+        }).optional(),
+      )
+      .mutation(async ({ input }) => {
+        const sources = input?.sources || ["kktix", "indievox", "accupass"];
+        const results: Record<string, { scraped: number; inserted: number; updated: number; failed: number }> = {};
+
+        for (const source of sources) {
+          try {
+            let events: any[] = [];
+            if (source === "kktix") {
+              const { scrapeAllMusicEvents } = await import("./scrapers/kktix-scraper");
+              events = await scrapeAllMusicEvents();
+            } else if (source === "indievox") {
+              const { scrapeIndievoxEvents } = await import("./scrapers/indievox-scraper");
+              events = await scrapeIndievoxEvents();
+            } else if (source === "accupass") {
+              const { scrapeAccupassEvents } = await import("./scrapers/accupass-scraper");
+              events = await scrapeAccupassEvents();
+            }
+
+            if (events.length > 0) {
+              const { saveStandardizedEvents } = await import("./scrapers/event-storage");
+              const result = await saveStandardizedEvents(events);
+              results[source] = { scraped: events.length, ...result };
+            } else {
+              results[source] = { scraped: 0, inserted: 0, updated: 0, failed: 0 };
+            }
+          } catch (error: any) {
+            console.error(`Scrape failed for ${source}:`, error.message);
+            results[source] = { scraped: 0, inserted: 0, updated: 0, failed: 1 };
+          }
+        }
+
+        return results;
       }),
 
     // 舊的模擬數據 API (保留向後兼容)

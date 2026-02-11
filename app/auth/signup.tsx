@@ -13,6 +13,7 @@ import {
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
+import { useAuthContext } from "@/lib/auth-context";
 import * as Location from "expo-location";
 import * as Haptics from "expo-haptics";
 
@@ -56,6 +57,7 @@ const MUSIC_GENRES = [
 export default function SignupScreen() {
   const router = useRouter();
   const colors = useColors();
+  const { signup } = useAuthContext();
 
   const [step, setStep] = useState<SignupStep>("basic");
   const [loading, setLoading] = useState(false);
@@ -169,18 +171,34 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise((r) => setTimeout(r, 2000));
+      const result = await signup({
+        email: data.email,
+        password: data.password,
+        displayName: data.nickname,
+        gender: data.gender as "male" | "female" | "other" | "prefer_not_to_say",
+        location: data.latitude ? {
+          latitude: data.latitude,
+          longitude: data.longitude!,
+          city: data.city,
+        } : undefined,
+        musicGenres: data.musicGenres,
+      });
 
-      if (Platform.OS !== "web") {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      if (result.success) {
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        }
+        Alert.alert("成功", "帳號註冊成功!", [
+          { text: "確定", onPress: () => router.replace("/(tabs)") },
+        ]);
+      } else {
+        if (Platform.OS !== "web") {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+        Alert.alert("註冊失敗", result.error || "請稍後重試");
       }
-
-      Alert.alert("成功", "帳號註冊成功!", [
-        { text: "確定", onPress: () => router.replace("/(tabs)") },
-      ]);
-    } catch (error) {
-      Alert.alert("錯誤", "註冊失敗,請稍後重試");
+    } catch (error: any) {
+      Alert.alert("錯誤", error?.message || "註冊失敗,請稍後重試");
     } finally {
       setLoading(false);
     }

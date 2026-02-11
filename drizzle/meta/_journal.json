@@ -15,6 +15,20 @@
       "when": 1770585008275,
       "tag": "0001_far_zodiak",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1770844432460,
+      "tag": "0002_lush_tarot",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1770845345135,
+      "tag": "0003_mature_unicorn",
+      "breakpoints": true
     }
   ]
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { ScrollView, Text, View, TouchableOpacity, Image, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
+import { useAuthContext } from "@/lib/auth-context";
 import { mockUsers, mockEvents } from "@/lib/mock-data";
 import * as Haptics from "expo-haptics";
 
@@ -11,13 +12,21 @@ import * as Haptics from "expo-haptics";
  */
 export default function ProfileScreen() {
   const router = useRouter();
+  const { user, isAuthenticated, logout } = useAuthContext();
   const [spotifyConnected, setSpotifyConnected] = useState(false);
 
-  // Mock current user
-  const currentUser = {
+  // Use auth user data if available, otherwise use mock
+  const currentUser = isAuthenticated && user ? {
     ...mockUsers[0],
-    nickname: "我的暱稱",
+    nickname: user.displayName,
     bio: "熱愛音樂，喜歡參加各種現場演出",
+    isVVIP: user.isVVIP || false,
+    avatar: user.avatarUrl || mockUsers[0].avatar,
+  } : {
+    ...mockUsers[0],
+    nickname: "訪客",
+    bio: "登入後解鎖更多功能",
+    isVVIP: false,
   };
 
   // Mock verified events
@@ -226,6 +235,48 @@ export default function ProfileScreen() {
               </TouchableOpacity>
             ))}
           </View>
+        </View>
+
+        {/* Auth Actions */}
+        <View className="px-6 pb-6">
+          {isAuthenticated ? (
+            <TouchableOpacity
+              onPress={async () => {
+                if (Platform.OS !== "web") {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                }
+                Alert.alert("登出", "確定要登出嗎？", [
+                  { text: "取消", style: "cancel" },
+                  {
+                    text: "登出",
+                    style: "destructive",
+                    onPress: async () => {
+                      await logout();
+                      router.replace("/auth/login" as any);
+                    },
+                  },
+                ]);
+              }}
+              className="bg-error/10 py-4 rounded-2xl items-center border border-error/30"
+            >
+              <Text className="text-error font-bold text-base">登出帳號</Text>
+            </TouchableOpacity>
+          ) : (
+            <View className="gap-3">
+              <TouchableOpacity
+onPress={() => router.push("/auth/login" as any)}
+                className="bg-primary py-4 rounded-2xl items-center"
+              >
+                <Text className="text-white font-bold text-base">登入</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+onPress={() => router.push("/auth/signup" as any)}
+                className="bg-surface py-4 rounded-2xl items-center border border-border"
+              >
+                <Text className="text-foreground font-bold text-base">建立新帳號</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       </ScrollView>
     </ScreenContainer>
