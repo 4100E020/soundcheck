@@ -3,10 +3,10 @@
  * 
  * 從 KKTIX 組織的 Atom Feed 爬取活動數據並標準化
  */
-
 import axios from "axios";
 import { parseStringPromise } from "xml2js";
-import { invokeLLM } from "../_core/llm";
+import { invokeLLM } from "../\_core/llm";
+import { getVenueCoordinates } from "./venue-database";
 
 // 音樂相關組織 ID 列表
 const MUSIC_ORGANIZATIONS = [
@@ -236,13 +236,30 @@ ${content.substring(0, 3000)}
     const content = response.choices[0].message.content;
     const extracted = JSON.parse(typeof content === "string" ? content : JSON.stringify(content));
     
+    // 嘗試從場地資料庫查詢座標
+    let venueLocation = { latitude: 25.0330, longitude: 121.5654 };
+    if (extracted.venue?.name) {
+      const venueCoords = getVenueCoordinates(extracted.venue.name);
+      if (venueCoords) {
+        venueLocation = { latitude: venueCoords.latitude, longitude: venueCoords.longitude };
+        console.log(`Found venue coordinates: ${extracted.venue.name} (${venueLocation.latitude}, ${venueLocation.longitude})`);
+      } else {
+        console.log(`Venue not in database: ${extracted.venue.name}, using default coordinates`);
+      }
+    }
+
     return {
-      venue: extracted.venue || {
-        name: "待確認",
-        address: "",
-        city: "台北",
-        location: { latitude: 25.0330, longitude: 121.5654 },
-      },
+      venue: extracted.venue
+        ? {
+            ...extracted.venue,
+            location: venueLocation,
+          }
+        : {
+            name: "待確認",
+            address: "",
+            city: "台北",
+            location: { latitude: 25.0330, longitude: 121.5654 },
+          },
       ticketing: {
         status: extracted.ticketing?.status || "on_sale",
         priceRange: {
@@ -262,7 +279,7 @@ ${content.substring(0, 3000)}
   } catch (error) {
     console.error("Failed to extract event details with LLM:", error);
     
-    // 返回默認值
+      // 返回默認值
     return {
       venue: {
         name: "待確認",
