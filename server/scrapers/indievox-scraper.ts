@@ -107,10 +107,30 @@ async function fetchEventDetail(item: IndievoxListItem): Promise<IndievoxEventDe
     const descriptionHtml = $(".tab-pane.active, .event-info, .activity-content, #activityInfo").html() || "";
     const description = $(".tab-pane.active, .event-info, .activity-content, #activityInfo").text().trim();
     
-    // 提取圖片
-    const imageUrl = $(".event-poster img, .activity-poster img, .main-image img").attr("src") 
-      || $("meta[property='og:image']").attr("content")
-      || item.imageUrl;
+    // 提取圖片 - 優先從 Open Graph meta tag
+    let imageUrl = $("meta[property='og:image']").attr("content");
+    
+    // 如果沒有 og:image，嘗試從各種可能的圖片元素提取
+    if (!imageUrl) {
+      imageUrl = $(".event-poster img").attr("src")
+        || $(".activity-poster img").attr("src")
+        || $(".main-image img").attr("src")
+        || $("img[src*='activity']").first().attr("src")
+        || $("img[src*='indievox.static']").first().attr("src")
+        || $("img[src*='tixcraft']").first().attr("src")
+        || item.imageUrl;
+    }
+    
+    // 如果圖片 URL 不是完整的，补上 domain
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      imageUrl = imageUrl.startsWith('/') 
+        ? `https://www.indievox.com${imageUrl}`
+        : `https://www.indievox.com/${imageUrl}`;
+    }
+    
+    if (imageUrl) {
+      console.log(`[iNDIEVOX] Found image: ${imageUrl}`);
+    }
 
     return {
       title: item.title,

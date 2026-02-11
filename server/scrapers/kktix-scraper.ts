@@ -304,20 +304,67 @@ ${content.substring(0, 3000)}
 
 /**
  * 從 HTML 內容中提取圖片
+ * 優先提取 Open Graph 圖片，然後再提取其他大圖
  */
 function extractImages(html: string): Array<{ url: string; type: string }> {
   const images: Array<{ url: string; type: string }> = [];
-  const imgRegex = /<img[^>]+src="([^">]+)"/g;
-  let match;
   
-  while ((match = imgRegex.exec(html)) !== null) {
-    const url = match[1];
-    // 過濾掉小圖標和追蹤像素
-    if (!url.includes("icon") && !url.includes("pixel") && !url.includes("tracking")) {
+  // 1. 優先提取 Open Graph 圖片 (og:image)
+  const ogImageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
+    || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+property=["']og:image["']/i);
+  
+  if (ogImageMatch && ogImageMatch[1]) {
+    const ogImageUrl = ogImageMatch[1];
+    // 確保是完整的 URL
+    if (ogImageUrl.startsWith('http')) {
       images.push({
-        url: url,
-        type: images.length === 0 ? "cover" : "gallery",
+        url: ogImageUrl,
+        type: "cover",
       });
+      console.log(`[KKTIX] Found og:image: ${ogImageUrl}`);
+    }
+  }
+  
+  // 2. 提取 Twitter Card 圖片作為備用
+  if (images.length === 0) {
+    const twitterImageMatch = html.match(/<meta[^>]+name=["']twitter:image["'][^>]+content=["']([^"']+)["']/i)
+      || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+name=["']twitter:image["']/i);
+    
+    if (twitterImageMatch && twitterImageMatch[1]) {
+      const twitterImageUrl = twitterImageMatch[1];
+      if (twitterImageUrl.startsWith('http')) {
+        images.push({
+          url: twitterImageUrl,
+          type: "cover",
+        });
+        console.log(`[KKTIX] Found twitter:image: ${twitterImageUrl}`);
+      }
+    }
+  }
+  
+  // 3. 如果還是沒有找到，從 img 標籤中提取大圖
+  if (images.length === 0) {
+    const imgRegex = /<img[^>]+src="([^">]+)"/g;
+    let match;
+    
+    while ((match = imgRegex.exec(html)) !== null) {
+      const url = match[1];
+      // 過濾掉小圖標、追蹤像素、logo
+      if (
+        url.startsWith('http') &&
+        !url.includes("icon") && 
+        !url.includes("pixel") && 
+        !url.includes("tracking") &&
+        !url.includes("logo") &&
+        !url.includes("avatar") &&
+        (url.includes("large") || url.includes("original") || url.includes("upload"))
+      ) {
+        images.push({
+          url: url,
+          type: images.length === 0 ? "cover" : "gallery",
+        });
+        console.log(`[KKTIX] Found img tag: ${url}`);
+      }
     }
   }
   
@@ -374,6 +421,20 @@ async function transformKKTIXEvent(
   // 使用 LLM 提取詳細信息
   const details = await extractEventDetails(contentText);
   
+  // 擷取活動詳情頁以獲取完整的 HTML（包含 meta tags）
+  let detailPageHtml = "";
+  try {
+    const detailResponse = await axios.get(url, {
+      timeout: 10000,
+      headers: {
+        "User-Agent": "SoundCheck Event Scraper/1.0",
+      },
+    });
+    detailPageHtml = detailResponse.data;
+  } catch (error: any) {
+    console.warn(`Failed to fetch detail page for ${url}:`, error.message);
+  }
+  
   const event: StandardizedEvent = {
     id: generateUUID(),
     sourceId: extractEventId(url),
@@ -402,7 +463,7 @@ async function transformKKTIXEvent(
       organizationId: organizationId,
     },
     
-    images: extractImages(contentHtml),
+    images: extractImages(detailPageHtml || contentHtml),
     lineup: details.lineup,
     
     metadata: {

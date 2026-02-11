@@ -113,9 +113,33 @@ async function fetchAccupassDetail(item: AccupassListItem): Promise<{
     const descriptionHtml = $(".event-content, .event-description, .activity-content, article").html() || "";
     const description = $(".event-content, .event-description, .activity-content, article").text().trim();
 
-    // 提取圖片
-    const imageUrl = $("meta[property='og:image']").attr("content")
-      || $(".event-banner img, .event-cover img").attr("src");
+    // 提取圖片 - 優先從 Open Graph meta tag
+    let imageUrl = $("meta[property='og:image']").attr("content");
+    
+    // 如果沒有 og:image，嘗試從 twitter:image
+    if (!imageUrl) {
+      imageUrl = $("meta[name='twitter:image']").attr("content");
+    }
+    
+    // 如果還是沒有，嘗試從各種可能的圖片元素提取
+    if (!imageUrl) {
+      imageUrl = $(".event-banner img").attr("src")
+        || $(".event-cover img").attr("src")
+        || $("img[alt='event-banner']").attr("src")
+        || $("img[src*='eventbanner']").first().attr("src")
+        || $("img[src*='static.accupass']").first().attr("src");
+    }
+    
+    // 如果圖片 URL 不是完整的，补上 domain
+    if (imageUrl && !imageUrl.startsWith('http')) {
+      imageUrl = imageUrl.startsWith('/') 
+        ? `https://www.accupass.com${imageUrl}`
+        : `https://www.accupass.com/${imageUrl}`;
+    }
+    
+    if (imageUrl) {
+      console.log(`[Accupass] Found image: ${imageUrl}`);
+    }
 
     // 提取頁面所有文字作為 raw content
     const rawContent = $("body").text().replace(/\s+/g, " ").trim();
