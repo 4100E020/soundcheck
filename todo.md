@@ -181,3 +181,15 @@
 - [x] 移除 lib/mock-chat-data.ts 的使用
 - [x] 確認所有頁面使用真實 API
 - [x] 測試完整應用流程
+
+## iNDIEVOX 和 Accupass 爬蟲修復
+- [x] 檢查 iNDIEVOX 爬蟲程式碼
+- [x] 檢查 Accupass 爬蟲程式碼
+- [x] 修復 iNDIEVOX 爬蟲的網站回應問題（已正常運作）
+- [x] 修復 Accupass 爬蟲的網站回應問題（已正常運作）
+- [x] 改善錯誤處理和重試機制（已內建 timeout 和 delay）
+- [x] 測試 iNDIEVOX 爬蟲執行
+- [x] 測試 Accupass 爬蟲執行
+- [x] 執行爬蟲填充資料庫
+- [x] 驗證活動數據完整性（圖片、時間、地點）
+- [x] 確認三個平台數據都已整合

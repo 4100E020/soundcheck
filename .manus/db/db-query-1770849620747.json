@@ -1,0 +1,28 @@
+{
+  "query": "\nSELECT \n  source,\n  COUNT(*) as total_events,\n  SUM(CASE WHEN images IS NOT NULL AND JSON_LENGTH(images) > 0 THEN 1 ELSE 0 END) as events_with_images,\n  SUM(CASE WHEN venue IS NOT NULL THEN 1 ELSE 0 END) as events_with_venue\nFROM standardized_events\nGROUP BY source\nORDER BY source;\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user XDitxHfNNmk4atg.root --database JQrfdruCyxS49XrmnYUv4K --execute \nSELECT \n  source,\n  COUNT(*) as total_events,\n  SUM(CASE WHEN images IS NOT NULL AND JSON_LENGTH(images) > 0 THEN 1 ELSE 0 END) as events_with_images,\n  SUM(CASE WHEN venue IS NOT NULL THEN 1 ELSE 0 END) as events_with_venue\nFROM standardized_events\nGROUP BY source\nORDER BY source;\n",
+  "rows": [
+    {
+      "source": "kktix",
+      "total_events": "11",
+      "events_with_images": "11",
+      "events_with_venue": "11"
+    },
+    {
+      "source": "indievox",
+      "total_events": "13",
+      "events_with_images": "13",
+      "events_with_venue": "13"
+    },
+    {
+      "source": "accupass",
+      "total_events": "15",
+      "events_with_images": "15",
+      "events_with_venue": "15"
+    }
+  ],
+  "messages": [],
+  "stdout": "source\ttotal_events\tevents_with_images\tevents_with_venue\nkktix\t11\t11\t11\nindievox\t13\t13\t13\naccupass\t15\t15\t15\n",
+  "stderr": "",
+  "execution_time_ms": 1800
+}

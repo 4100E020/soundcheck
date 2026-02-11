@@ -1,0 +1,52 @@
+{
+  "query": "\n(SELECT id, source, title, SUBSTRING(JSON_EXTRACT(images, '$[0].url'), 1, 80) as image_url, venue->>'$.name' as venue_name\nFROM standardized_events WHERE source = 'kktix' LIMIT 2)\nUNION ALL\n(SELECT id, source, title, SUBSTRING(JSON_EXTRACT(images, '$[0].url'), 1, 80) as image_url, venue->>'$.name' as venue_name\nFROM standardized_events WHERE source = 'indievox' LIMIT 2)\nUNION ALL\n(SELECT id, source, title, SUBSTRING(JSON_EXTRACT(images, '$[0].url'), 1, 80) as image_url, venue->>'$.name' as venue_name\nFROM standardized_events WHERE source = 'accupass' LIMIT 2);\n",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway02.us-east-1.prod.aws.tidbcloud.com --port 4000 --user XDitxHfNNmk4atg.root --database JQrfdruCyxS49XrmnYUv4K --execute \n(SELECT id, source, title, SUBSTRING(JSON_EXTRACT(images, '$[0].url'), 1, 80) as image_url, venue->>'$.name' as venue_name\nFROM standardized_events WHERE source = 'kktix' LIMIT 2)\nUNION ALL\n(SELECT id, source, title, SUBSTRING(JSON_EXTRACT(images, '$[0].url'), 1, 80) as image_url, venue->>'$.name' as venue_name\nFROM standardized_events WHERE source = 'indievox' LIMIT 2)\nUNION ALL\n(SELECT id, source, title, SUBSTRING(JSON_EXTRACT(images, '$[0].url'), 1, 80) as image_url, venue->>'$.name' as venue_name\nFROM standardized_events WHERE source = 'accupass' LIMIT 2);\n",
+  "rows": [
+    {
+      "id": "0c60c455-775b-4a0b-b878-1cdfdd8c8459",
+      "source": "kktix",
+      "title": "臺灣BEATBOX公開賽 ",
+      "image_url": "\"https://assets.kktix.io/upload_images/60585/logo_original.png\"",
+      "venue_name": "Corner House"
+    },
+    {
+      "id": "3fbea468-8c9b-4ef5-b52e-6d93679a90f9",
+      "source": "kktix",
+      "title": "亞洲Beatbox公開賽 ",
+      "image_url": "\"https://assets.kktix.io/upload_images/52749/__BEATBOX___BANNER_original.jpg\"",
+      "venue_name": "三創數位生活"
+    },
+    {
+      "id": "55e72e46-0bdb-4265-a453-5139c0962aa5",
+      "source": "indievox",
+      "title": "2026/02/22 (日) SABASISTER【JUST PUNK ROCK TOUR】in Taiwan",
+      "image_url": "\"https://indievox.static.tixcraft.com/images/activity/26_iv03822d8_aa34cd7d20ab4",
+      "venue_name": "null"
+    },
+    {
+      "id": "67b09068-686f-4da1-a224-295235520c32",
+      "source": "indievox",
+      "title": "2026/02/28 (六) 八青哥《衝向你衝向我》－高雄",
+      "image_url": "\"https://indievox.static.tixcraft.com/images/activity/26_iv0381377_8b604034ce315",
+      "venue_name": "null"
+    },
+    {
+      "id": "32162035-a377-4186-b5df-e0ed06f20c02",
+      "source": "accupass",
+      "title": "【免費線上活動】時代國際名師❤跟著歐膩說一口道地韓語40音❤｜ACCUPASS 活動通",
+      "image_url": "\"https://static.accupass.com/eventbanner/2106040913091311958853.jpg\"",
+      "venue_name": "線上活動"
+    },
+    {
+      "id": "c62cd9f4-6134-468a-ba2b-bf1362d79d33",
+      "source": "accupass",
+      "title": "辛巴音樂會｜ACCUPASS 活動通",
+      "image_url": "\"https://static.accupass.com/eventbanner/2505290336151571279576.jpg\"",
+      "venue_name": "null"
+    }
+  ],
+  "messages": [],
+  "stdout": "id\tsource\ttitle\timage_url\tvenue_name\n0c60c455-775b-4a0b-b878-1cdfdd8c8459\tkktix\t臺灣BEATBOX公開賽 \t\"https://assets.kktix.io/upload_images/60585/logo_original.png\"\tCorner House\n3fbea468-8c9b-4ef5-b52e-6d93679a90f9\tkktix\t亞洲Beatbox公開賽 \t\"https://assets.kktix.io/upload_images/52749/__BEATBOX___BANNER_original.jpg\"\t三創數位生活\n55e72e46-0bdb-4265-a453-5139c0962aa5\tindievox\t2026/02/22 (日) SABASISTER【JUST PUNK ROCK TOUR】in Taiwan\t\"https://indievox.static.tixcraft.com/images/activity/26_iv03822d8_aa34cd7d20ab4\tnull\n67b09068-686f-4da1-a224-295235520c32\tindievox\t2026/02/28 (六) 八青哥《衝向你衝向我》－高雄\t\"https://indievox.static.tixcraft.com/images/activity/26_iv0381377_8b604034ce315\tnull\n32162035-a377-4186-b5df-e0ed06f20c02\taccupass\t【免費線上活動】時代國際名師❤跟著歐膩說一口道地韓語40音❤｜ACCUPASS 活動通\t\"https://static.accupass.com/eventbanner/2106040913091311958853.jpg\"\t線上活動\nc62cd9f4-6134-468a-ba2b-bf1362d79d33\taccupass\t辛巴音樂會｜ACCUPASS 活動通\t\"https://static.accupass.com/eventbanner/2505290336151571279576.jpg\"\tnull\n",
+  "stderr": "",
+  "execution_time_ms": 1658
+}
