@@ -383,7 +383,7 @@ async function transformKKTIXEvent(
     title: entry.title[0],
     description: contentText,
     descriptionHtml: contentHtml,
-    summary: entry.summary?.[0],
+    summary: typeof entry.summary?.[0] === 'string' ? entry.summary[0] : (entry.summary?.[0] as any)?._  || '',
     
     startDate: details.startDate,
     endDate: details.endDate,
