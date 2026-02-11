@@ -198,9 +198,25 @@ ${content.substring(0, 3000)}
    - maxPrice: 最高票價 (數字,如果免費則為 0)
    - status: 票務狀態 (on_sale/sold_out/coming_soon)
 
-3. category: 活動分類 (concert/festival/live_music/dj_set/club_event/workshop/party/other)
+3. category: 活動分類 (必選一個)
+   - concert: 演唱會/音樂會 (單一藝人或樂團)
+   - festival: 音樂節 (多組藝人, 多天活動)
+   - live_music: Live House 演出 (小型現場演出)
+   - dj_set: DJ 演出/電子音樂派對
+   - club_event: 俱樂部活動
+   - workshop: 音樂工作坊/講座
+   - party: 音樂派對
+   - other: 其他
 
-4. genres: 音樂類型數組 (如: ["indie", "rock", "electronic"])
+4. genres: 音樂類型數組 (可多選, 請從以下選項中選擇最合適的2-3個)
+   - 流行: pop, mandopop, kpop, jpop
+   - 搖滾: rock, indie_rock, punk, metal, alternative
+   - 電子: electronic, edm, techno, house, trance, dubstep
+   - 爭士: jazz, blues, soul, funk
+   - 古典: classical, opera, symphony, chamber
+   - 民謠: folk, country, acoustic
+   - 嘉年華: hip_hop, rap, r&b
+   - 其他: indie, experimental, world_music, ambient
 
 5. lineup: 演出陣容數組,每個包含:
    - name: 藝人名稱

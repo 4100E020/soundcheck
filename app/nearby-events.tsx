@@ -80,12 +80,12 @@ export default function NearbyEventsScreen() {
           </Text>
 
           <Text className="text-xs text-muted" numberOfLines={1}>
-            📍 {item.venue.name}{item.venue.city ? ` · ${item.venue.city}` : ""}
+            {item.venue.name}{item.venue.city ? ` · ${item.venue.city}` : ""}
           </Text>
 
           <View className="flex-row items-center justify-between mt-1">
             <Text className="text-xs text-muted">
-              📅 {formatEventDate(item.startDate)}
+              {formatEventDate(item.startDate)}
             </Text>
             {daysUntil > 0 ? (
               <View className="bg-warning/10 px-2 py-0.5 rounded-full">
@@ -129,7 +129,6 @@ export default function NearbyEventsScreen() {
   if (error) {
     return (
       <ScreenContainer className="items-center justify-center px-6">
-        <Text className="text-4xl mb-3">😢</Text>
         <Text className="text-lg font-bold text-foreground mb-2">載入失敗</Text>
         <Text className="text-sm text-muted text-center mb-4">
           無法取得活動資料，請稍後重試
@@ -167,7 +166,6 @@ export default function NearbyEventsScreen() {
         contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 20 }}
         ListEmptyComponent={
           <View className="items-center py-16">
-            <Text className="text-5xl mb-3">🎵</Text>
             <Text className="text-lg font-bold text-foreground mb-2">
               目前沒有活動
             </Text>

@@ -125,9 +125,9 @@ export default function EventsScreen() {
 
     return (
       <TouchableOpacity
-        className="bg-surface rounded-2xl overflow-hidden border border-border mx-6 mb-4"
+        className="bg-surface rounded-3xl overflow-hidden shadow-sm mx-4 mb-5"
         style={{ opacity: 1 }}
-        activeOpacity={0.8}
+        activeOpacity={0.85}
         onPress={() => {
           if (Platform.OS !== "web") {
             Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -139,7 +139,7 @@ export default function EventsScreen() {
         <View className="relative">
           <Image
             source={{ uri: event.coverImage }}
-            className="w-full h-48"
+            className="w-full h-56"
             resizeMode="cover"
           />
           {/* Overlay badges */}
@@ -174,8 +174,8 @@ export default function EventsScreen() {
         </View>
 
         {/* Info */}
-        <View className="p-4 gap-2">
-          <Text className="text-lg font-bold text-foreground" numberOfLines={2}>
+        <View className="p-5 gap-3">
+          <Text className="text-xl font-bold text-foreground leading-7" numberOfLines={2}>
             {event.title}
           </Text>
 

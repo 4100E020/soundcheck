@@ -63,7 +63,6 @@ export default function EventDetailScreen() {
   if (error || !event) {
     return (
       <ScreenContainer className="flex-1 items-center justify-center p-6">
-        <Text className="text-5xl mb-4">😢</Text>
         <Text className="text-xl font-bold text-foreground mb-2">活動不存在</Text>
         <Text className="text-muted mb-6 text-center">
           {error?.message || "找不到此活動，可能已被移除或連結無效"}

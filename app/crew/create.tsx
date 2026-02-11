@@ -28,7 +28,7 @@ interface CrewTemplate {
 const CREW_TEMPLATES: CrewTemplate[] = [
   {
     type: "transport",
-    emoji: "🚗",
+    emoji: "",
     label: "交通共乘",
     color: "#FF5252",
     fields: [
@@ -39,8 +39,8 @@ const CREW_TEMPLATES: CrewTemplate[] = [
   },
   {
     type: "accommodation",
-    emoji: "🏨",
-    label: "住宿分攤",
+    emoji: "",
+    label: "住宿分攟",
     color: "#2196F3",
     fields: [
       { key: "location", label: "住宿地點", placeholder: "例：高雄市區民宿" },
@@ -51,8 +51,8 @@ const CREW_TEMPLATES: CrewTemplate[] = [
   },
   {
     type: "onsite",
-    emoji: "🎤",
-    label: "現場揪人",
+    emoji: "",
+    label: "現場揺人",
     color: "#00D9A3",
     fields: [
       { key: "meetTime", label: "集合時間", placeholder: "例：下午 2:00" },
@@ -146,7 +146,6 @@ export default function CreateCrewScreen() {
   if (!event && !isLoading) {
     return (
       <ScreenContainer className="flex-1 items-center justify-center px-6">
-        <Text className="text-5xl mb-4">😢</Text>
         <Text className="text-xl font-bold text-foreground mb-2">活動不存在</Text>
         <Text className="text-muted text-center mb-6">找不到此活動，可能已被移除</Text>
         <TouchableOpacity
