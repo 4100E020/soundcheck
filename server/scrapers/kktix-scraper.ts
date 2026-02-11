@@ -10,17 +10,12 @@ import { getVenueCoordinates } from "./venue-database";
 
 // 音樂相關組織 ID 列表
 const MUSIC_ORGANIZATIONS = [
-  "streetvoice",      // StreetVoice
-  "thewall",          // The Wall
-  "legacy",           // Legacy
-  "riverside",        // Riverside
-  "bluenote",         // Blue Note Taipei
-  "eslite",           // 誠品音樂
-  "indievox",         // iNDIEVOX
-  "ticketplus",       // Ticket Plus
-  "musicmatters",     // Music Matters
-  "taipeiarena",      // 台北小巨蛋
-  "ticc",             // 台北國際會議中心
+  "streetvoice", "indievox", "ticketplus", "musicmatters",
+  "thewall", "legacy", "riverside", "bluenote", "taipeiarena", "ticc", "ntch", "eslite",
+  "megaport", "springwave", "hohaiyan", "simplelife",
+  "revolver", "korner", "pipe", "sappho", "brownsugar", "blueroommusic",
+  "underworld", "bobwunderbar", "zeelandia",
+  "wildfire", "goodmusic", "punchline", "whynot", "badhead",
 ];
 
 /**

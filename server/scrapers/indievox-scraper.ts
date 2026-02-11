@@ -317,7 +317,7 @@ export async function scrapeIndievoxEvents(): Promise<StandardizedEventData[]> {
   const events: StandardizedEventData[] = [];
 
   // 限制同時爬取數量,避免過於頻繁
-  const maxEvents = 20;
+  const maxEvents = 50;
   const itemsToScrape = listItems.slice(0, maxEvents);
 
   const now = new Date();

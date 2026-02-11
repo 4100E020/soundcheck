@@ -14,13 +14,11 @@ const USER_AGENT = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/
 
 // 音樂相關搜尋關鍵字
 const MUSIC_SEARCH_QUERIES = [
-  "演唱會",
-  "音樂祭",
-  "live house",
-  "DJ",
-  "音樂會",
-  "搖滾",
-  "電子音樂",
+  "演唱會", "音樂會", "音樂節", "live house", "live music",
+  "搖滾", "流行音樂", "獨立音樂", "民謠", "爭士",
+  "DJ", "電子音樂", "EDM", "techno", "house music",
+  "嘉年華", "跨年", "春天呕啦", "貢寮",
+  "古典音樂", "交響樂", "室內樂", "歌劇",
 ];
 
 interface AccupassListItem {
@@ -330,7 +328,7 @@ export async function scrapeAccupassEvents(): Promise<StandardizedEventData[]> {
   console.log(`[Accupass] Total unique events found: ${allItems.length}`);
 
   const events: StandardizedEventData[] = [];
-  const maxEvents = 15; // 限制爬取數量
+  const maxEvents = 30; // 限制爬取數量
   const itemsToScrape = allItems.slice(0, maxEvents);
 
   const now = new Date();
